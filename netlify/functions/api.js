@@ -4,7 +4,8 @@ exports.handler = async (event, context) => {
     // 1. 安全配置：从环境变量读取连接串
     // 我们手动添加 ssl 配置，确保能连上 Neon
     const client = new Client({
-        connectionString: process.env.DATABASE_URL,
+   // 优先使用 Netlify 自动生成的连接池地址，如果没有则回退到手动地址
+connectionString: process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL,
         ssl: {
             rejectUnauthorized: false // 关键设置：允许 Neon 的 SSL 连接
         }

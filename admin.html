@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>后台管理系统 (V24 Split View)</title>
+    <title>后台管理系统 (V25 Pro)</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <style>
         :root { 
@@ -15,20 +15,13 @@
         }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         
-        /* 顶部通栏 */
         .top-bar { height: 50px; background: white; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; justify-content: space-between; flex-shrink: 0; }
         .app-title { font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 10px; }
         
-        /* 主布局：左右分栏 */
         .layout { display: flex; flex: 1; overflow: hidden; }
-        
-        /* 左侧：月历视窗 (固定) */
         .left-panel { flex: 1; display: flex; flex-direction: column; padding: 15px; overflow: hidden; border-right: 1px solid var(--border); background: #f8fafc; }
-        
-        /* 右侧：设置面板 (可滚动) */
         .right-panel { width: 420px; background: white; display: flex; flex-direction: column; border-left: 1px solid var(--border); box-shadow: -4px 0 15px rgba(0,0,0,0.03); z-index: 10; }
         
-        /* 通用组件 */
         button { cursor: pointer; padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: white; font-size: 13px; transition: 0.1s; }
         button:hover { background: #f1f5f9; border-color: #94a3b8; }
         button.primary { background: var(--primary); color: white; border-color: var(--primary); }
@@ -39,7 +32,6 @@
         
         input, select, textarea { padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; box-sizing: border-box; margin-bottom: 8px; font-size: 13px; }
 
-        /* 左侧月历样式 */
         .cal-controls { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; background: white; padding: 10px; border-radius: 8px; border: 1px solid var(--border); }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; flex: 1; }
         .cal-head { background: #f1f5f9; padding: 8px; text-align: center; font-size: 12px; font-weight: 600; color: #64748b; }
@@ -49,36 +41,32 @@
         .cal-cell.empty { background: #f9fafb; pointer-events: none; }
         
         .date-num { font-weight: 700; font-size: 14px; display: flex; justify-content: space-between; margin-bottom: 2px; }
-        .holiday-tag { color: var(--holiday-text); font-size: 11px; font-weight: normal; }
         .pill { font-size: 11px; padding: 2px 5px; border-radius: 4px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .pill.l { background: var(--leader-bg); color: var(--leader-text); }
         .pill.f { background: var(--female-bg); color: var(--female-text); }
         .pill.m { background: var(--male-bg); color: var(--male-text); }
-        .remark-text { font-size: 10px; color: #c2410c; border-top: 1px dashed #e2e8f0; margin-top: auto; }
+        .remark-text { font-size: 10px; color: #c2410c; border-top: 1px dashed #e2e8f0; margin-top: auto; white-space: pre-wrap; word-break: break-all; }
 
-        /* 右侧 Tabs */
         .tabs { display: flex; border-bottom: 1px solid var(--border); background: #f8fafc; }
         .tab { flex: 1; text-align: center; padding: 12px 0; font-size: 13px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; }
-        .tab:hover { background: #f1f5f9; }
         .tab.active { color: var(--primary); border-bottom-color: var(--primary); background: white; }
-        
         .tab-content { flex: 1; overflow-y: auto; padding: 20px; }
         .tab-pane { display: none; }
         .tab-pane.active { display: block; }
 
-        /* 表格 */
         .table-container { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; font-size: 13px; }
         table { width: 100%; border-collapse: collapse; }
-        th { background: #f8fafc; text-align: left; padding: 8px; border-bottom: 1px solid var(--border); font-weight: 600; color: #475569; }
+        th { background: #f8fafc; text-align: left; padding: 8px; border-bottom: 1px solid var(--border); position: sticky; top: 0; }
         td { padding: 8px; border-bottom: 1px solid var(--border); }
-        tr:last-child td { border-bottom: none; }
-
-        /* 弹窗 (Issue 1: 完美居中) */
+        
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .modal-box { background: white; padding: 20px; border-radius: 12px; width: 400px; max-width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
         
-        /* 状态栏 */
-        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #064e3b; color: white; padding: 10px 20px; border-radius: 30px; font-size: 13px; font-weight: 500; display: none; z-index: 2000; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #064e3b; color: white; padding: 10px 20px; border-radius: 30px; font-size: 13px; font-weight: 500; display: none; z-index: 2000; }
+        
+        /* 悬停状态样式 */
+        .suspended-row { color: #94a3b8; background: #f8fafc; text-decoration: line-through; }
+        .suspended-tag { font-size: 10px; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 1px 4px; border-radius: 3px; margin-left: 5px; color: #64748b; text-decoration: none; display: inline-block; }
     </style>
 </head>
 <body>
@@ -94,7 +82,7 @@
 </div>
 
 <div class="top-bar">
-    <div class="app-title">⚙️ 值班管理控制台 <span style="font-size:11px; background:#e0e7ff; padding:2px 6px; border-radius:4px;">V24 Split</span></div>
+    <div class="app-title">⚙️ 值班管理控制台 <span style="font-size:11px; background:#e0e7ff; padding:2px 6px; border-radius:4px;">V25 Pro</span></div>
     <button class="danger" onclick="location.reload()">🔒 安全退出</button>
 </div>
 
@@ -106,7 +94,7 @@
                 <input type="month" id="calMonthPicker" style="width:auto; margin:0; font-weight:bold;" onchange="app.onMonthPick()">
                 <button onclick="app.changeMonth(1)">▶</button>
             </div>
-            <button class="success" onclick="app.publishSchedule()">☁️ 发布/更新本月排班</button>
+            <button class="success" onclick="app.publishSchedule()">☁️ 发布排班到前台</button>
         </div>
         <div id="calGrid" class="cal-grid"></div>
     </div>
@@ -132,6 +120,7 @@
                 </div>
 
                 <h4 style="margin-top:0;">⚡ 自动排班</h4>
+                <div style="font-size:12px; color:#64748b; margin-bottom:10px;">注：悬停状态(⏸️)的人员将自动跳过</div>
                 <label>带班 (工作日) 起始</label><select id="slW"></select>
                 <label>带班 (假日) 起始</label><select id="slH"></select>
                 <label>女值班员 起始</label><select id="sf"></select>
@@ -185,7 +174,6 @@
                     <label>📅 导入历史值班表</label>
                     <input type="file" id="upHist" hidden onchange="app.importHistory(this)">
                     <button style="width:100%" onclick="document.getElementById('upHist').click()">⬆ 上传历史 Excel</button>
-                    <small style="color:#666">Excel需包含: 日期, 带班领导, 女值班员, 男值班员</small>
                 </div>
             </div>
 
@@ -226,6 +214,12 @@
         <h3 style="margin-top:0;">编辑人员</h3>
         <input type="hidden" id="edId">
         <input type="hidden" id="edType">
+        
+        <div style="background:#f1f5f9; padding:10px; border-radius:6px; margin-bottom:15px; display:flex; align-items:center; justify-content:space-between; border:1px solid #cbd5e1;">
+            <label style="margin:0; cursor:pointer;" for="edSuspend">⏸️ 暂停排班 (悬停)</label>
+            <input type="checkbox" id="edSuspend" style="width:auto; margin:0;">
+        </div>
+
         <label>姓名</label><input id="edName">
         
         <div id="leaderFields" style="display:none; gap:10px;">
@@ -283,16 +277,8 @@ window.app = {
     toast(m) { const t=document.getElementById('toast'); t.innerText=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2000); },
     log(act, det) { this.data.logs.unshift({t:new Date().toLocaleString(), a:act, d:det}); if(this.data.logs.length>200)this.data.logs.pop(); this.save(); this.renderLogs(); },
 
-    // --- Issue 6: Separation ---
-    async publishSchedule() {
-        await this.save(); 
-        this.toast("✅ 排班表已发布/更新");
-    },
-    async saveNotice() {
-        this.data.notice = document.getElementById('noticeInput').value;
-        await this.save();
-        this.toast("✅ 公告已更新");
-    },
+    async publishSchedule() { await this.save(); this.toast("✅ 排班表已发布/更新"); },
+    async saveNotice() { this.data.notice = document.getElementById('noticeInput').value; await this.save(); this.toast("✅ 公告已更新"); },
     clearNotice() { document.getElementById('noticeInput').value=""; this.saveNotice(); },
 
     // --- Calendar ---
@@ -305,7 +291,6 @@ window.app = {
         const fd=new Date(this.vy,this.vm-1,1), ld=new Date(this.vy,this.vm,0), off=(fd.getDay()+6)%7;
         for(let i=0;i<off;i++) g.innerHTML+=`<div class="cal-cell empty"></div>`;
         const hl=this.data.holidays[String(this.vy)]||[];
-        
         for(let d=1; d<=ld.getDate(); d++) {
             const ds=`${this.vy}-${String(this.vm).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const isH=hl.includes(ds), s=this.data.schedules[ds];
@@ -316,20 +301,27 @@ window.app = {
         }
     },
 
-    // --- Swap Modal ---
+    // --- Swap Modal (Auto Remark Logic) ---
     openSwap(ds, isH) {
         document.getElementById('swapModal').style.display='flex';
         document.getElementById('swapTitle').innerText=`调整 ${ds}`; document.getElementById('swapDate').value=ds;
         const s=this.data.schedules[ds]||{leader:'',female:'',male:'',remark:''};
-        const fill=(id,t,v)=>document.getElementById(id).innerHTML=`<option value="">(空)</option>`+this.data.personnel[t].map(p=>`<option value="${p.name}" ${p.name===v?'selected':''}>${p.name}</option>`).join('');
+        
+        // 记录原始值用于比对
+        this.currentOriginal = {...s};
+
+        const fill=(id,t,v)=>document.getElementById(id).innerHTML=`<option value="">(空)</option>`+this.data.personnel[t].filter(p=>!p.isSuspended).map(p=>`<option value="${p.name}" ${p.name===v?'selected':''}>${p.name}</option>`).join('');
         fill('swL','leader',s.leader); fill('swF','female',s.female); fill('swM','male',s.male);
         document.getElementById('swR').value=s.remark;
-        // Standby Pool
+        
+        // Standby Pool (排除悬停人员)
         const pool=document.getElementById('standbyPool'); pool.innerHTML='';
-        const addB=(p,t,pf)=>{const b=document.createElement('button'); b.innerText=pf+p.name; b.className='success'; b.style.padding='4px'; b.style.fontSize='11px';
+        const addB=(p,t,pf)=>{
+            if(p.isSuspended) return; // 悬停人员不进备勤池
+            const b=document.createElement('button'); b.innerText=pf+p.name; b.className='success'; b.style.padding='4px'; b.style.fontSize='11px';
             b.onclick=()=>{ 
                 if(t==='l')document.getElementById('swL').value=p.name; if(t==='f')document.getElementById('swF').value=p.name; if(t==='m')document.getElementById('swM').value=p.name; 
-                const rm=document.getElementById('swR'); if(!rm.value.includes('🚑')) rm.value+=' 🚑';
+                let r=document.getElementById('swR'); if(!r.value.includes('🚑')) r.value+=' 🚑备';
             }; pool.appendChild(b);
         };
         this.data.personnel.leader.slice(0,4).forEach(p=>addB(p,'l','带:'));
@@ -338,16 +330,37 @@ window.app = {
     },
     saveSwap() {
         const ds=document.getElementById('swapDate').value;
-        this.data.schedules[ds]={leader:document.getElementById('swL').value, female:document.getElementById('swF').value, male:document.getElementById('swM').value, remark:document.getElementById('swR').value};
+        const nL=document.getElementById('swL').value, nF=document.getElementById('swF').value, nM=document.getElementById('swM').value;
+        let r=document.getElementById('swR').value;
+        const old = this.currentOriginal;
+
+        // 自动生成换班备注
+        const changes = [];
+        if(old.leader && old.leader !== nL) changes.push(`带(${old.leader}→${nL})`);
+        if(old.female && old.female !== nF) changes.push(`女(${old.female}→${nF})`);
+        if(old.male && old.male !== nM) changes.push(`男(${old.male}→${nM})`);
+        
+        if(changes.length > 0) {
+            const changeStr = `🔁换:${changes.join(' ')}`;
+            // 避免重复添加
+            if(!r.includes(changeStr)) {
+                r = r ? (r + ' ' + changeStr) : changeStr;
+            }
+        }
+
+        this.data.schedules[ds]={leader:nL, female:nF, male:nM, remark:r};
         this.save(); this.log('排班调整', ds); this.renderCal(); document.getElementById('swapModal').style.display='none';
     },
 
-    // --- Person (Issue 3: Leader Fields) ---
+    // --- Person (Suspend Logic) ---
     renderPersonList() {
         const t=document.getElementById('manageType').value, l=this.data.personnel[t];
         let h=`<div class="table-container"><table><thead><tr><th>姓名</th>${t==='leader'?'<th>职务</th><th>座机</th>':''}<th>手机</th><th>操作</th></tr></thead><tbody>`;
         l.forEach((p,i)=>{
-            h+=`<tr><td>${p.name}</td>
+            const suspendedClass = p.isSuspended ? 'suspended-row' : '';
+            const suspendedTag = p.isSuspended ? '<span class="suspended-tag">⏸️悬停</span>' : '';
+            h+=`<tr class="${suspendedClass}">
+                <td>${p.name}${suspendedTag}</td>
                 ${t==='leader'?`<td>${p.job||'-'}</td><td>${p.landline||'-'}</td>`:''}
                 <td>${p.phone||'-'}</td>
                 <td><button onclick="app.editPerson(${i})">✎</button> <button class="danger" onclick="app.delPerson('${t}',${i})">×</button></td></tr>`;
@@ -360,15 +373,20 @@ window.app = {
         document.getElementById('editModal').style.display='flex';
         document.getElementById('edType').value=t; document.getElementById('edId').value=i!==null?i:'new';
         document.getElementById('leaderFields').style.display=t==='leader'?'flex':'none';
-        const p=i!==null?this.data.personnel[t][i]:{name:'',phone:'',job:'',landline:'',remark:''};
+        
+        const p=i!==null?this.data.personnel[t][i]:{name:'',phone:'',job:'',landline:'',remark:'',isSuspended:false};
         document.getElementById('edName').value=p.name; document.getElementById('edPhone').value=p.phone;
         document.getElementById('edJob').value=p.job||''; document.getElementById('edLand').value=p.landline||'';
         document.getElementById('edRem').value=p.remark||'';
+        document.getElementById('edSuspend').checked = !!p.isSuspended;
     },
     savePerson() {
         const t=document.getElementById('edType').value, id=document.getElementById('edId').value, n=document.getElementById('edName').value;
         if(!n)return;
-        const p={name:n, phone:document.getElementById('edPhone').value, remark:document.getElementById('edRem').value};
+        const p={
+            name:n, phone:document.getElementById('edPhone').value, remark:document.getElementById('edRem').value,
+            isSuspended: document.getElementById('edSuspend').checked // 保存悬停状态
+        };
         if(t==='leader'){ p.job=document.getElementById('edJob').value; p.landline=document.getElementById('edLand').value; }
         if(id==='new') { this.data.personnel[t].push(p); this.log('新增人员', `${t}:${n}`); }
         else { this.data.personnel[t][id]=p; this.log('修改人员', `${t}:${n}`); }
@@ -376,20 +394,52 @@ window.app = {
     },
     delPerson(t,i) { if(confirm('删除?')) { const n=this.data.personnel[t][i].name; this.data.personnel[t].splice(i,1); this.log('删除人员',`${t}:${n}`); this.save(); this.renderPersonList(); } },
 
-    // --- Rules & Gen ---
-    fillSelects() { const f=(id,t)=>document.getElementById(id).innerHTML=this.data.personnel[t].map(p=>`<option value="${p.name}">${p.name}</option>`).join(''); f('slW','leader');f('slH','leader');f('sf','female');f('sm','male'); },
+    // --- Rules & Gen (Skip Suspended) ---
+    fillSelects() { 
+        // 填充下拉框时，排除悬停人员，或者标记出来
+        const f=(id,t)=>document.getElementById(id).innerHTML=this.data.personnel[t].map(p=>
+            `<option value="${p.name}" ${p.isSuspended?'disabled':''}>${p.name}${p.isSuspended?' (悬停)':''}</option>`
+        ).join(''); 
+        f('slW','leader');f('slH','leader');f('sf','female');f('sm','male'); 
+    },
     generate() {
         const ms=document.getElementById('genMonth').value; if(!ms)return alert('选月份');
         const [y,m]=ms.split('-').map(Number), days=new Date(y,m,0).getDate(), hl=this.data.holidays[String(y)]||[];
         const getI=(id,t)=>{const n=document.getElementById(id).value; return Math.max(0,(this.data.personnel[t]||[]).findIndex(p=>p.name===n))};
         let iw=getI('slW','leader'), ih=getI('slH','leader'), ife=getI('sf','female'), ima=getI('sm','male');
         const pL=this.data.personnel.leader, pF=this.data.personnel.female, pM=this.data.personnel.male;
+        
+        // 核心选取逻辑：遇到悬停人员自动跳过
+        const pick = (list, startIdx) => {
+            let current = startIdx;
+            let count = 0;
+            // 防止死循环（全员悬停）
+            while(count < list.length) {
+                const p = list[current % list.length];
+                if (!p.isSuspended) {
+                    return { name: p.name, next: (current + 1) % list.length };
+                }
+                current++;
+                count++;
+            }
+            return { name: "无可用", next: current };
+        };
+
         if(!pL.length||!pF.length||!pM.length) return alert('人员不足');
 
         for(let d=1;d<=days;d++) {
             const ds=`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`, isH=hl.includes(ds);
-            let l=isH ? pL[ih++%pL.length].name : pL[iw++%pL.length].name;
-            this.data.schedules[ds]={leader:l, female:pF[ife++%pF.length].name, male:pM[ima++%pM.length].name, remark:''};
+            
+            let lRes, fRes, mRes;
+            if(isH) {
+                lRes = pick(pL, ih); ih = lRes.next;
+            } else {
+                lRes = pick(pL, iw); iw = lRes.next;
+            }
+            fRes = pick(pF, ife); ife = fRes.next;
+            mRes = pick(pM, ima); ima = mRes.next;
+
+            this.data.schedules[ds]={leader:lRes.name, female:fRes.name, male:mRes.name, remark:''};
         }
         this.log('生成排班', ms); this.save(); this.renderCal(); this.toast('⚡ 生成完毕');
     },
@@ -408,7 +458,7 @@ window.app = {
     },
     delHoliday(y,d) { this.data.holidays[y]=this.data.holidays[y].filter(x=>x!==d); this.save(); this.renderHoliday(); },
 
-    // --- Issue 7: Import History & Utils ---
+    // --- Import History ---
     importExcel(inp, type) {
         const f=inp.files[0]; if(!f)return;
         const r=new FileReader();
@@ -417,12 +467,12 @@ window.app = {
             let c=0;
             if(type==='person') {
                 const map={'带班领导':'leader','女值班员':'female','男值班员':'male'};
-                rows.forEach(r=>{ const t=map[r['人员类型']]; if(t){this.data.personnel[t].push({name:r['姓名'],phone:r['手机'],job:r['职务'],landline:r['座机'],remark:r['备注']});c++} });
+                rows.forEach(r=>{ const t=map[r['人员类型']]; if(t){this.data.personnel[t].push({name:r['姓名'],phone:r['手机'],job:r['职务'],landline:r['座机'],remark:r['备注'],isSuspended:false});c++} });
             }
             this.log('导入人员', c+'条'); this.save(); this.renderPersonList(); inp.value=''; this.toast(`导入 ${c} 条`);
         }; r.readAsArrayBuffer(f);
     },
-    importHistory(inp) { // Issue 7
+    importHistory(inp) {
         const f=inp.files[0]; if(!f)return;
         const r=new FileReader();
         r.onload=e=>{
@@ -443,7 +493,7 @@ window.app = {
         a.href=URL.createObjectURL(b); a.download='backup.json'; a.click();
     },
     
-    // --- Issue 4: Logs UI ---
+    // --- Logs ---
     renderLogs() {
         const b=document.querySelector('#logTable tbody');
         b.innerHTML=this.data.logs.map(l=>`<tr><td style="color:#666;font-size:11px;">${l.t}</td><td><strong>${l.a}</strong></td><td>${l.d}</td></tr>`).join('');

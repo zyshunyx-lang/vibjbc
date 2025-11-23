@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>后台管理系统</title>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h2 { margin-top: 0; color: #333; }
+        button { padding: 10px 20px; cursor: pointer; background: #1890ff; color: white; border: none; border-radius: 4px; }
+        button:hover { background: #40a9ff; }
+        input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
+        .section { margin-bottom: 30px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
+        #status { color: green; font-weight: bold; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div id="loginBox" class="card" style="text-align:center; margin-top:50px;">
+        <h2>🔐 管理员登录</h2>
+        <input type="password" id="adminPass" placeholder="输入管理员密码" style="max-width:300px;">
+        <br>
+        <button onclick="app.login()">登录后台</button>
+    </div>
+
+    <div id="adminPanel" style="display:none;">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between;">
+                <h2>⚙️ 数据控制台</h2>
+                <button onclick="location.href='index.html'" style="background:#52c41a">前往前台预览</button>
+            </div>
+            <div id="status"></div>
+
+            <div class="section">
+                <h3>📢 滚动公告设置</h3>
+                <input id="noticeInput" placeholder="输入公告内容...">
+                <button onclick="app.saveNotice()">发布公告</button>
+                <button onclick="app.clearNotice()" style="background:#ff4d4f; margin-left:10px;">清空公告</button>
+            </div>
+
+            <div class="section">
+                <h3>📥 Excel 排班表导入</h3>
+                <p style="font-size:12px; color:#666">Excel 列名需包含：日期, 带班领导, 女值班员, 男值班员, 备注</p>
+                <input type="file" id="fileInput" accept=".xlsx">
+                <button onclick="app.uploadExcel()">开始导入</button>
+            </div>
+
+            <div class="section">
+                <h3>🔐 修改系统密码</h3>
+                <input id="newAdmin" placeholder="新·管理员密码">
+                <input id="newView" placeholder="新·查看密码">
+                <button onclick="app.changePass()">更新密码</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+window.app = {
+    api: '/.netlify/functions/api',
+    token: null,
+    data: { schedules:{}, personnel:{} },
+
+    async login() {
+        const p = document.getElementById('adminPass').value;
+        try {
+            const res = await fetch(this.api, { method:'POST', body:JSON.stringify({ action:'login', password:p }) });
+            const json = await res.json();
+            if(json.role === 'admin') {
+                this.token = p;
+                this.data = json.data || {};
+                if(!this.data.schedules) this.data.schedules = {};
+                document.getElementById('loginBox').style.display = 'none';
+                document.getElementById('adminPanel').style.display = 'block';
+                document.getElementById('noticeInput').value = this.data.notice || '';
+            } else { alert("密码错误或权限不足"); }
+        } catch(e) { alert("网络连接失败"); }
+    },
+
+    async save() {
+        const res = await fetch(this.api, { method:'POST', body:JSON.stringify({ action:'save', password:this.token, newData:this.data }) });
+        const j = await res.json();
+        if(j.success) {
+            document.getElementById('status').innerText = `✅ 保存成功 (${new Date().toLocaleTimeString()})`;
+            setTimeout(()=>document.getElementById('status').innerText='', 3000);
+        } else { alert("保存失败"); }
+    },
+
+    saveNotice() {
+        this.data.notice = document.getElementById('noticeInput').value;
+        this.save();
+    },
+    clearNotice() {
+        this.data.notice = "";
+        document.getElementById('noticeInput').value = "";
+        this.save();
+    },
+
+    changePass() {
+        const na = document.getElementById('newAdmin').value;
+        const nv = document.getElementById('newView').value;
+        if(confirm('确定修改密码？')) {
+            fetch(this.api, { method:'POST', body:JSON.stringify({ action:'change_pass', password:this.token, newAdminPass:na, newViewPass:nv }) })
+            .then(r=>r.json()).then(j=>{ if(j.success) alert('修改成功'); });
+        }
+    },
+
+    uploadExcel() {
+        const f = document.getElementById('fileInput').files[0];
+        if(!f) return;
+        const r = new FileReader();
+        r.onload = e => {
+            const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+            const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+            let c = 0;
+            rows.forEach(row => {
+                let date = row['日期'] || row['Date'];
+                if(typeof date === 'number') date = new Date(Math.round((date - 25569)*86400*1000)).toISOString().split('T')[0];
+                if(date) {
+                    this.data.schedules[date] = {
+                        leader: row['带班领导']||'', female: row['女值班员']||'', male: row['男值班员']||'', remark: row['备注']||''
+                    };
+                    c++;
+                }
+            });
+            this.save();
+            alert(`已导入 ${c} 条数据`);
+        };
+        r.readAsArrayBuffer(f);
+    }
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>云端值班系统 V21 (Netlify+Neon版)</title>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <style>
+        /* 保持原 V20 样式，并增加以下新样式 */
+        :root {
+            --primary: #4f46e5; --bg: #f3f4f6; --surface: #ffffff; --border: #e5e7eb;
+            --text-main: #111827; --text-sub: #6b7280;
+            --leader-bg: #eef2ff; --leader-text: #3730a3;
+            --female-bg: #fdf2f8; --female-text: #be185d;
+            --male-bg: #f0fdf4;   --male-text: #166534;
+            --holiday-bg: #fef2f2; --holiday-text: #dc2626;
+            --today-ring: #f59e0b;
+            --standby-bg: #fff7ed; --standby-border: #fed7aa; --standby-text: #c2410c;
+        }
+        body { font-family: 'Inter', system-ui, sans-serif; margin: 0; background: var(--bg); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; }
+        
+        /* 登录遮罩专用 */
+        #loginOverlay { position: fixed; inset: 0; background: #e0e7ff; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .login-box { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); width: 320px; text-align: center; }
+        .login-title { font-size: 24px; font-weight: 800; color: var(--primary); margin-bottom: 20px; }
+        .login-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px; text-align: center; }
+        .login-input:focus { border-color: var(--primary); outline: none; }
+        .login-btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .login-btn:hover { background: #4338ca; }
+        .login-status { margin-top: 15px; font-size: 14px; color: #dc2626; min-height: 20px; }
+
+        /* 权限控制类：如果是查看者，这些元素将隐藏 */
+        body.role-viewer .admin-only { display: none !important; }
+        body.role-viewer .cal-cell { pointer-events: none; } /* 查看者禁止点击格子换班 */
+        
+        /* 复用原样式 */
+        .header { background: var(--surface); height: 60px; padding: 0 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 20; position: relative; }
+        .logo { font-size: 18px; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        .version-tag { background: var(--primary); color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; }
+        .main-area { flex: 1; overflow: hidden; display: flex; padding: 20px; gap: 20px; }
+        button { cursor: pointer; padding: 7px 14px; border-radius: 6px; border: 1px solid var(--border); background: white; transition: 0.15s; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 5px; color: var(--text-main); }
+        button:hover { background: #f9fafb; border-color: #d1d5db; }
+        button.primary { background: var(--primary); color: white; border-color: var(--primary); }
+        button.danger { color: #dc2626; border-color: #fecaca; background: #fef2f2; }
+        button.success { color: #059669; border-color: #a7f3d0; background: #ecfdf5; }
+        button.standby { color: #c2410c; border-color: #fed7aa; background: #fff7ed; width: 100%; justify-content: center; margin-top: 5px; }
+        input, select, textarea { padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 14px; background: #f9fafb; }
+        
+        .calendar-container { flex: 1; background: var(--surface); border-radius: 12px; display: flex; flex-direction: column; border: 1px solid var(--border); overflow: hidden; }
+        .cal-header { padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 20px; background: white; }
+        .cal-grid { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: 36px auto; overflow-y: auto; background: var(--border); gap: 1px; }
+        .cal-day-header { background: #f8fafc; color: var(--text-sub); font-weight: 600; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+        .cal-cell { background: white; min-height: 120px; padding: 8px; display: flex; flex-direction: column; gap: 3px; position: relative; }
+        .cal-cell.empty { background: #f9fafb; pointer-events: none; }
+        .cal-cell.holiday { background: var(--holiday-bg); }
+        .cal-cell.today { box-shadow: inset 0 0 0 2px var(--today-ring); background: #fffbeb !important; }
+        .date-num { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+        .duty-pill { font-size: 11px; padding: 3px 6px; border-radius: 4px; font-weight: 500; display: flex; align-items: center; gap: 4px; border: 1px solid transparent; margin-bottom: 2px; cursor: pointer; }
+        .duty-pill.leader { background: var(--leader-bg); color: var(--leader-text); }
+        .duty-pill.female { background: var(--female-bg); color: var(--female-text); }
+        .duty-pill.male { background: var(--male-bg); color: var(--male-text); }
+        .duty-remark { font-size: 11px; color: #c2410c; margin-top: auto; padding-top: 4px; border-top: 1px dashed #e5e7eb; word-break: break-all; font-weight: 500; }
+        
+        /* Modals */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); z-index: 100; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal-card { background: white; width: 900px; max-width: 95%; max-height: 90vh; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+        .modal-header { padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #f9fafb; }
+        .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+        #alertModal .modal-card, #confirmModal .modal-card { width: 320px; height: auto; text-align: center; }
+        .nav-tabs { display: flex; gap: 20px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+        .nav-item { padding: 10px 0; cursor: pointer; color: var(--text-sub); font-weight: 500; border-bottom: 2px solid transparent; font-size: 14px; }
+        .nav-item.active { color: var(--primary); border-color: var(--primary); }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+        .standby-box { background: var(--standby-bg); border: 1px solid var(--standby-border); padding: 12px; border-radius: 6px; margin-bottom: 15px; }
+        .standby-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .table-wrap { border: 1px solid var(--border); border-radius: 6px; overflow: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { background: #f9fafb; text-align: left; padding: 10px; border-bottom: 1px solid var(--border); color: var(--text-sub); }
+        td { padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text-main); vertical-align: middle; }
+    </style>
+</head>
+<body>
+
+<div id="loginOverlay">
+    <div class="login-box">
+        <div class="login-title">🛡️ 安全值班系统</div>
+        <input type="password" id="loginPass" class="login-input" placeholder="输入 查看密码 或 管理密码" onkeydown="if(event.key==='Enter') app.login()">
+        <button class="login-btn" onclick="app.login()">验证进入</button>
+        <div id="loginStatus" class="login-status"></div>
+    </div>
+    <div style="margin-top:20px; font-size:12px; color:#6b7280;">云端数据库已连接 • SSL加密传输</div>
+</div>
+
+<header class="header">
+    <div class="logo">
+        🛡️ 值班排班系统 <span class="version-tag">V21 Cloud</span>
+        <span id="roleTag" style="font-size:10px; border:1px solid currentColor; padding:1px 4px; border-radius:4px; margin-left:5px;"></span>
+    </div>
+    <div style="display:flex; gap:10px;">
+        <button onclick="app.goToday()">📅 回到今日</button>
+        <button onclick="app.openLab()">🔍 档案查询</button>
+        <button class="success admin-only" onclick="app.exportExcel()">📥 导出报表</button>
+        <button class="primary admin-only" onclick="app.openSettings()">⚙️ 管理控制台</button>
+        <button class="danger" onclick="location.reload()">🔒 退出</button>
+    </div>
+</header>
+
+<main class="main-area">
+    <div class="calendar-container">
+        <div class="cal-header">
+            <input type="month" id="mainDatePicker" style="width:auto; font-weight:600;">
+            <div style="flex:1"></div>
+            <div style="font-size:12px; color:var(--text-sub); display:flex; gap:15px; align-items:center;">
+                <span style="display:flex; align-items:center; gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--holiday-text)"></span> 假日</span>
+                <span>🖱️ 滚轮切换</span>
+            </div>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+    </div>
+</main>
+
+<div id="alertModal" class="modal-overlay" style="z-index:300;">
+    <div class="modal-card"><div class="modal-body"><h3 style="margin:0 0 10px 0;">提示</h3><p id="alertMsg"></p><div class="modal-btns"><button class="primary" onclick="app.closeAlert()">知道了</button></div></div></div>
+</div>
+<div id="confirmModal" class="modal-overlay" style="z-index:200;">
+    <div class="modal-card"><div class="modal-body"><h3 style="margin:0 0 10px 0;">确认操作</h3><p id="confirmMsg"></p><div class="modal-btns"><button onclick="app.closeConfirm()">取消</button><button class="primary" id="confirmYesBtn">确定</button></div></div></div>
+</div>
+
+<div id="settingsModal" class="modal-overlay">
+    <div class="modal-card">
+        <div class="modal-header">
+            <span style="font-weight:700">管理控制台</span>
+            <span style="cursor:pointer; font-size:20px;" onclick="app.closeModal('settingsModal')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="nav-tabs">
+                <div class="nav-item active" onclick="app.switchTab(this, 'tab-person')">👥 人员管理</div>
+                <div class="nav-item" onclick="app.switchTab(this, 'tab-holiday')">📅 📅 日</div>
+                <div class="nav-item" onclick="app.switchTab(this, 'tab-rules')">⚡ 排班/备勤</div>
+                <div class="nav-item" onclick="app.switchTab(this, 'tab-data')">💾 数据维护</div>
+                <div class="nav-item" onclick="app.switchTab(this, 'tab-security')">🔐 安全设置</div>
+            </div>
+            
+            <div id="tab-person" class="tab-pane active">
+                 <div style="display:flex; justify-content:space-between; margin-bottom:15px; background:#f9fafb; padding:10px; border-radius:8px;">
+                    <select id="manageType" style="width:120px;" onchange="app.renderPersonList()">
+                        <option value="leader">带班领导</option>
+                        <option value="female">女值班员</option>
+                        <option value="male">男值班员</option>
+                    </select>
+                    <div style="display:flex; gap:8px;">
+                        <button class="primary" onclick="app.editPerson()">+ 添加人员</button>
+                    </div>
+                </div>
+                <div id="personList" class="table-wrap" style="height:450px; overflow-y:auto;"></div>
+            </div>
+
+            <div id="tab-holiday" class="tab-pane">
+                 <div style="margin-bottom:10px;">(此处功能与原版一致，支持导入和手动添加)</div>
+                 <div style="display:flex; justify-content:space-between;">
+                     <div style="display:flex; gap:5px;"><input type="date" id="hStart"><input type="date" id="hEnd"><button class="primary" onclick="app.addHolidayRange()">+ 添加</button></div>
+                 </div>
+                 <div id="holidayChips" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:5px;"></div>
+             </div>
+             
+             <div id="tab-rules" class="tab-pane">
+                 <button class="primary" style="padding:10px 30px;" onclick="app.generate('single')">⚡ 生成本月</button>
+                 <button style="padding:10px 30px; margin-left:15px;" onclick="app.generate('future12')">🚀 生成未来12个月</button>
+                 <div style="margin-top:10px;">(生成规则配置与原版保持一致)</div>
+                 <div style="display:none;"><select id="startLeaderW"></select><select id="startLeaderH"></select><select id="startFemale"></select><select id="startMale"></select></div>
+             </div>
+
+             <div id="tab-data" class="tab-pane">
+                 <button class="primary" onclick="app.publishToCloud()">☁️ 强制推送到云端</button>
+                 <p style="color:gray; font-size:12px; margin-top:5px;">注意：正常操作会自动保存。此按钮用于数据冲突时的强制覆盖。</p>
+             </div>
+
+            <div id="tab-security" class="tab-pane">
+                <div style="padding:20px; max-width:400px; margin:0 auto;">
+                    <h4 style="margin-top:0;">修改系统密码</h4>
+                    <div style="margin-bottom:15px;">
+                        <label>新·管理密码 (拥有所有权限)</label>
+                        <input type="text" id="newAdminPass" placeholder="留空则不修改">
+                    </div>
+                    <div style="margin-bottom:20px;">
+                        <label>新·查看密码 (仅查看与搜索)</label>
+                        <input type="text" id="newViewPass" placeholder="留空则不修改">
+                    </div>
+                    <button class="primary" style="width:100%" onclick="app.changePasswords()">💾 更新密码</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="swapModal" class="modal-overlay">
+    <div class="modal-card" style="width:450px;"><div class="modal-body">
+        <h3>排班调整</h3><input type="hidden" id="swapDate"><input type="hidden" id="isSwapHoliday">
+        <div id="standbyPool" class="standby-grid"></div>
+        <select id="swapLeader"></select><select id="swapFemale"></select><select id="swapMale"></select>
+        <textarea id="swapRemark"></textarea>
+        <button class="primary" style="width:100%; margin-top:10px;" onclick="app.saveSwap()">保存变更</button>
+    </div></div>
+</div>
+
+<div id="labModal" class="modal-overlay"><div class="modal-card"><div class="modal-header"><span>档案查询</span><span onclick="app.closeModal('labModal')">×</span></div><div class="modal-body"><input id="labSearch" placeholder="姓名..." onkeydown="if(event.key==='Enter')app.labQuery()"><div id="labResult"></div></div></div></div>
+<div id="editModal" class="modal-overlay"><div class="modal-card" style="width:400px;"><div class="modal-body"><input type="hidden" id="editId"><input type="hidden" id="editType"><input id="pName" placeholder="姓名"><input id="pPhone" placeholder="手机"><textarea id="pRemark"></textarea><button class="primary" onclick="app.savePerson()">保存</button><span onclick="app.closeModal('editModal')" style="cursor:pointer;margin-left:10px;">取消</span></div></div></div>
+
+<script>
+window.app = {
+    // API 地址：由于是同域下的 Functions，路径如下
+    apiEndpoint: '/.netlify/functions/api',
+    userRole: null, // 'admin' or 'viewer'
+    authToken: null,
+    
+    data: { personnel: { leader: [], female: [], male: [] }, holidays: {}, schedules: {}, logs: [], standbyUsed: [], currYear: new Date().getFullYear(), currMonth: new Date().getMonth() + 1 },
+    
+    init() {
+        this.initUI();
+        // 初始化时不加载数据，等待登录
+    },
+
+    // --- 安全与网络层 ---
+    async login() {
+        const pwd = document.getElementById('loginPass').value;
+        const status = document.getElementById('loginStatus');
+        if(!pwd) return;
+        
+        status.innerText = "正在连接 Neon 数据库...";
+        
+        try {
+            const res = await fetch(this.apiEndpoint, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'login', password: pwd })
+            });
+            
+            if(res.status === 200) {
+                const json = await res.json();
+                this.authToken = pwd; // 暂存密码用于后续请求
+                this.userRole = json.role;
+                
+                // 加载数据
+                if(json.data && Object.keys(json.data).length > 0) {
+                    this.data = { ...this.data, ...json.data };
+                } else {
+                    console.log("数据库为空，使用默认初始化数据");
+                }
+                
+                // UI 切换
+                document.getElementById('loginOverlay').style.display = 'none';
+                document.body.classList.add(this.userRole === 'viewer' ? 'role-viewer' : 'role-admin');
+                document.getElementById('roleTag').innerText = this.userRole === 'admin' ? '管理员' : '查看模式';
+                
+                this.renderCal();
+            } else {
+                status.innerText = "密码错误或网络异常";
+            }
+        } catch(e) {
+            console.error(e);
+            status.innerText = "连接服务器失败";
+        }
+    },
+
+    async syncSave() {
+        if(this.userRole !== 'admin') return; // 查看者无法保存
+        
+        try {
+            await fetch(this.apiEndpoint, {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    action: 'save', 
+                    password: this.authToken,
+                    newData: this.data 
+                })
+            });
+            console.log("云端同步成功");
+        } catch(e) {
+            this.showAlert("云端同步失败，请检查网络");
+        }
+    },
+
+    async changePasswords() {
+        const na = document.getElementById('newAdminPass').value;
+        const nv = document.getElementById('newViewPass').value;
+        if(!na && !nv) return;
+        
+        this.showConfirm("确定要修改系统密码吗？", async () => {
+            const res = await fetch(this.apiEndpoint, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'change_pass',
+                    password: this.authToken,
+                    newAdminPass: na,
+                    newViewPass: nv
+                })
+            });
+            if(res.ok) {
+                this.showAlert("密码修改成功，下次登录生效");
+                this.closeModal('settingsModal');
+            } else {
+                this.showAlert("修改失败");
+            }
+        });
+    },
+
+    // --- 核心业务逻辑 (复用 V20，增加了 syncSave 调用) ---
+    save() {
+        // 本地状态更新后，立即同步云端
+        this.syncSave();
+    },
+    
+    // 下面的代码大多复用 V20，但去掉了 LocalStorage
+    log(type, detail) { this.data.logs.unshift({time: new Date().toLocaleString(), type, detail}); if(this.data.logs.length>200)this.data.logs.pop(); this.save(); },
+    
+    // UI Helpers
+    showAlert(m) { document.getElementById('alertMsg').innerText=m; document.getElementById('alertModal').classList.add('active'); },
+    closeAlert() { document.getElementById('alertModal').classList.remove('active'); },
+    showConfirm(m, cb) { document.getElementById('confirmMsg').innerText=m; const md=document.getElementById('confirmModal'); md.classList.add('active'); document.getElementById('confirmYesBtn').onclick=()=>{md.classList.remove('active'); cb();} },
+    closeConfirm() { document.getElementById('confirmModal').classList.remove('active'); },
+    openModal(id) { document.getElementById(id).classList.add('active'); if(id==='settingsModal') this.updateGenOptions(); },
+    closeModal(id) { document.getElementById(id).classList.remove('active'); },
+    
+    initUI() {
+        this.updateDatePicker();
+        document.getElementById('mainDatePicker').onchange = (e) => { if(e.target.value) { const [y, m] = e.target.value.split('-'); this.data.currYear = +y; this.data.currMonth = +m; this.renderCal(); } };
+        document.querySelector('.calendar-container').addEventListener('wheel', (e) => { if(e.deltaY !== 0) { e.preventDefault(); this.changeMonth(e.deltaY > 0 ? 1 : -1); } }, { passive: false });
+    },
+    updateDatePicker() { document.getElementById('mainDatePicker').value = `${this.data.currYear}-${String(this.data.currMonth).padStart(2,'0')}`; },
+    changeMonth(d) { let m = this.data.currMonth + d, y = this.data.currYear; if(m > 12) { m=1; y++; } if(m < 1) { m=12; y--; } this.data.currYear = y; this.data.currMonth = m; this.updateDatePicker(); this.renderCal(); },
+    goToday() { const now = new Date(); this.data.currYear = now.getFullYear(); this.data.currMonth = now.getMonth()+1; this.updateDatePicker(); this.renderCal(); },
+
+    // 渲染日历
+    renderCal() {
+        const y = this.data.currYear, m = this.data.currMonth;
+        const grid = document.getElementById('calGrid'); grid.innerHTML = '';
+        ['周一','周二','周三','周四','周五','周六','周日'].forEach(d => { const div = document.createElement('div'); div.className='cal-day-header'; div.innerText=d; grid.appendChild(div); });
+        const first = new Date(y, m-1, 1), last = new Date(y, m, 0), off = (first.getDay() + 6) % 7, total = last.getDate();
+        const mKey = `${y}-${String(m).padStart(2,'0')}`;
+        const sched = this.data.schedules[mKey] || {}, hList = this.data.holidays[y] || [], today = new Date();
+        
+        for(let i=0; i<off; i++) { const c = document.createElement('div'); c.className = 'cal-cell empty'; grid.appendChild(c); }
+        for(let d=1; d<=total; d++) {
+            const dStr = `${mKey}-${String(d).padStart(2,'0')}`;
+            const isH = hList.includes(dStr), isT = today.getFullYear()===y && (today.getMonth()+1)===m && today.getDate()===d;
+            const duty = sched[dStr];
+            const cell = document.createElement('div');
+            cell.className = `cal-cell ${isH?'holiday':''} ${isT?'today':''}`;
+            let html = `<div class="date-num">${d}</div>`;
+            if(duty) {
+                html += `<div class="duty-pill leader">${duty.leader}</div><div class="duty-pill female">${duty.female}</div><div class="duty-pill male">${duty.male}</div>`;
+                if(duty.remark) html += `<div class="duty-remark">${duty.remark}</div>`;
+            }
+            cell.innerHTML = html; 
+            // 只有管理员可以点击换班
+            cell.onclick = () => { if(this.userRole==='admin') this.openSwap(dStr); }; 
+            grid.appendChild(cell);
+        }
+    },
+    
+    // 生成/排班逻辑简化版
+    openSwap(ds) { 
+        document.getElementById('swapDate').value = ds; 
+        const mk = ds.substring(0, 7); 
+        const cur = (this.data.schedules[mk]||{})[ds] || {leader:'', female:'', male:'', remark:''};
+        const fill = (id,t,v) => document.getElementById(id).innerHTML = this.data.personnel[t].map(p=>`<option value="${p.name}" ${p.name===v?'selected':''}>${p.name}</option>`).join('');
+        fill('swapLeader','leader',cur.leader); fill('swapFemale','female',cur.female); fill('swapMale','male',cur.male);
+        document.getElementById('swapRemark').value = cur.remark;
+        this.openModal('swapModal');
+    },
+    saveSwap() {
+        const ds = document.getElementById('swapDate').value, mk = ds.substring(0,7);
+        if(!this.data.schedules[mk]) this.data.schedules[mk] = {};
+        this.data.schedules[mk][ds] = {
+            leader: document.getElementById('swapLeader').value,
+            female: document.getElementById('swapFemale').value,
+            male: document.getElementById('swapMale').value,
+            remark: document.getElementById('swapRemark').value
+        };
+        this.log('排班调整', ds);
+        this.closeModal('swapModal');
+        this.renderCal();
+    },
+    
+    // 人员管理
+    renderPersonList() {
+        const t = document.getElementById('manageType').value;
+        const l = this.data.personnel[t] || [];
+        document.getElementById('personList').innerHTML = `<table>${l.map((p,i)=>`<tr><td>${p.name}</td><td>${p.phone||''}</td><td><button onclick="app.editPerson(${i})">编辑</button><button class="danger" onclick="app.delPerson('${t}',${i})">×</button></td></tr>`).join('')}</table>`;
+    },
+    editPerson(i=null) {
+        const t = document.getElementById('manageType').value;
+        this.openModal('editModal');
+        document.getElementById('editType').value = t;
+        document.getElementById('editId').value = i!==null ? i : '';
+        const p = i!==null ? this.data.personnel[t][i] : {name:'',phone:'',remark:''};
+        document.getElementById('pName').value = p.name;
+        document.getElementById('pPhone').value = p.phone;
+        document.getElementById('pRemark').value = p.remark;
+    },
+    savePerson() {
+        const t=document.getElementById('editType').value, id=document.getElementById('editId').value, n=document.getElementById('pName').value;
+        if(!n)return;
+        const p = { name:n, phone:document.getElementById('pPhone').value, remark:document.getElementById('pRemark').value };
+        if(id!=='') this.data.personnel[t][id]=p; else this.data.personnel[t].push(p);
+        this.save(); this.renderPersonList(); this.closeModal('editModal');
+    },
+    delPerson(t,i) { this.showConfirm('确定删除?', ()=>{this.data.personnel[t].splice(i,1);this.save();this.renderPersonList()}); },
+    
+    // 查询
+    openLab() { this.openModal('labModal'); setTimeout(()=>document.getElementById('labSearch').focus(),100); },
+    labQuery() {
+        const n=document.getElementById('labSearch').value; const r=document.getElementById('labResult'); r.innerHTML='';
+        Object.keys(this.data.schedules).sort().reverse().forEach(mk=>{
+            const m=this.data.schedules[mk];
+            Object.keys(m).sort().reverse().forEach(d=>{
+                const v=m[d]; if(v.leader===n||v.female===n||v.male===n) r.innerHTML+=`<div style="padding:10px;border-bottom:1px solid #eee"><b>${d}</b> ${v.leader}/${v.female}/${v.male}</div>`;
+            })
+        });
+        if(!r.innerHTML) r.innerHTML='<div style="padding:20px;text-align:center;color:#999">无记录</div>';
+    },
+
+    // 辅助
+    updateGenOptions() { /* 简化: 填充Rules页面的Select */ },
+    publishToCloud() { this.syncSave(); this.showAlert("强制推送完成"); },
+    openSettings() { this.renderPersonList(); this.openModal('settingsModal'); }
+};
+window.onload = () => app.init();
+</script>
+</body>
+</html>

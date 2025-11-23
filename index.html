@@ -18,41 +18,48 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: var(--bg); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
         /* 登录层 */
-        #loginOverlay { position: fixed; inset: 0; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.3s; }
+        #loginOverlay { position: fixed; inset: 0; background: rgba(255,255,255,0.98); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.3s; }
         .login-card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); width: 300px; text-align: center; border: 1px solid var(--border); }
-        .login-btn { width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; margin-top: 10px; }
+        .login-btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; margin-top: 15px; font-weight: 600; }
         
-        /* 滚动公告 */
-        .ticker-container { background: var(--notice-bg); color: var(--notice-text); height: 36px; display: flex; align-items: center; overflow: hidden; border-bottom: 1px solid #fed7aa; font-size: 14px; font-weight: 500; }
-        .ticker-icon { padding: 0 15px; background: var(--notice-bg); z-index: 10; font-weight: 800; box-shadow: 5px 0 10px rgba(255,247,237,1); }
-        .ticker-content { white-space: nowrap; animation: scroll 20s linear infinite; padding-left: 100%; }
-        @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
-
         /* 顶部栏 */
         .header { background: var(--surface); height: 60px; padding: 0 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
         .brand { font-size: 18px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
         
-        /* 控制按钮 */
-        .controls { display: flex; gap: 10px; }
-        button.btn { background: white; border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; cursor: pointer; color: var(--text-sub); font-size: 14px; display: flex; align-items: center; gap: 5px; }
-        button.btn:hover { background: #f1f5f9; color: var(--primary); }
-        
-        /* 日历 */
-        .cal-box { flex: 1; margin: 20px; background: white; border-radius: 12px; border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        /* 公告栏 */
+        .ticker-container { background: var(--notice-bg); color: var(--notice-text); height: 32px; display: flex; align-items: center; overflow: hidden; border-bottom: 1px solid #fed7aa; font-size: 13px; font-weight: 600; }
+        .ticker-icon { padding: 0 15px; background: var(--notice-bg); z-index: 10; border-right: 1px solid #fed7aa; height: 100%; display: flex; align-items: center; }
+        .ticker-content { white-space: nowrap; animation: scroll 25s linear infinite; padding-left: 100%; display: flex; align-items: center; }
+        @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+
+        /* 核心日历样式 */
+        .cal-box { flex: 1; margin: 15px; background: white; border-radius: 12px; border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
         .cal-head { display: grid; grid-template-columns: repeat(7, 1fr); background: #f8fafc; border-bottom: 1px solid var(--border); }
-        .cal-head div { padding: 12px; text-align: center; font-size: 13px; font-weight: 600; color: var(--text-sub); }
+        .cal-head div { padding: 10px; text-align: center; font-size: 13px; font-weight: 600; color: var(--text-sub); }
         .cal-body { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); overflow-y: auto; gap: 1px; background: var(--border); }
-        .cal-cell { background: white; min-height: 100px; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
-        .cal-cell.today { background: #fffbeb; }
+        
+        /* 日历格子修复版 */
+        .cal-cell { background: white; min-height: 110px; padding: 6px; display: flex; flex-direction: column; gap: 3px; }
+        .cal-cell.today { background: #fffbeb !important; box-shadow: inset 0 0 0 2px var(--today-ring); }
         .cal-cell.holiday { background: var(--holiday-bg); }
-        .duty-tag { padding: 3px 6px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+        
+        .date-num { font-weight: 700; font-size: 14px; margin-bottom: 4px; display: flex; justify-content: space-between; }
+        .holiday-tag { color: #dc2626; font-size: 10px; font-weight: normal; }
+
+        .duty-tag { padding: 3px 6px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 4px; }
         .tag-l { background: var(--leader-bg); color: var(--leader-text); }
         .tag-f { background: var(--female-bg); color: var(--female-text); }
         .tag-m { background: var(--male-bg); color: var(--male-text); }
-        
-        /* 搜索框 */
-        .search-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
-        .search-card { background: white; width: 400px; max-height: 80vh; border-radius: 12px; display: flex; flex-direction: column; padding: 20px; }
+        .remark { font-size: 11px; color: #c2410c; margin-top: auto; padding-top: 4px; border-top: 1px dashed #eee; }
+
+        /* 控制区 */
+        .controls { display: flex; gap: 8px; }
+        button.btn { background: white; border: 1px solid var(--border); padding: 5px 10px; border-radius: 6px; cursor: pointer; color: var(--text-main); font-size: 13px; }
+        button.btn:hover { background: #f1f5f9; color: var(--primary); border-color: var(--primary); }
+
+        /* 搜索弹窗 */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+        .modal-card { background: white; width: 400px; max-height: 80vh; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; }
     </style>
 </head>
 <body>
@@ -60,22 +67,22 @@
 <div id="loginOverlay">
     <div class="login-card">
         <h3 style="margin-top:0; color:var(--primary)">🛡️ 值班公示平台</h3>
-        <input type="password" id="loginPass" placeholder="请输入查看密码" style="width:100%; padding:10px; box-sizing:border-box; border:1px solid #ccc; border-radius:6px; text-align:center;">
+        <input type="password" id="loginPass" placeholder="请输入查看密码" style="width:100%; padding:10px; box-sizing:border-box; border:1px solid #ccc; border-radius:6px; text-align:center;" onkeydown="if(event.key==='Enter') app.login()">
         <button class="login-btn" onclick="app.login()">进入系统</button>
-        <div id="loginMsg" style="color:red; margin-top:10px; font-size:13px;"></div>
+        <div id="loginMsg" style="color:#ef4444; margin-top:10px; font-size:13px;"></div>
     </div>
 </div>
 
 <header class="header">
     <div class="brand">📅 值班安排表</div>
     <div class="controls">
-        <button class="btn" onclick="app.goToday()">回到今天</button>
-        <div style="display:flex; align-items:center; gap:5px; background:#f1f5f9; padding:2px; border-radius:6px;">
-            <button class="btn" style="border:none; background:transparent" onclick="app.changeMonth(-1)">◀</button>
-            <span id="dateDisp" style="font-weight:600; font-size:14px; width:80px; text-align:center;"></span>
-            <button class="btn" style="border:none; background:transparent" onclick="app.changeMonth(1)">▶</button>
+        <button class="btn" onclick="app.goToday()">今天</button>
+        <div style="display:flex; gap:2px;">
+            <button class="btn" onclick="app.changeMonth(-1)">◀</button>
+            <button class="btn" style="font-weight:bold; width:80px;" id="dateDisp"></button>
+            <button class="btn" onclick="app.changeMonth(1)">▶</button>
         </div>
-        <button class="btn" onclick="document.getElementById('searchModal').style.display='flex'; setTimeout(()=>document.getElementById('sInput').focus(),100)">🔍 搜人</button>
+        <button class="btn" onclick="app.openSearch()">🔍 搜人</button>
     </div>
 </header>
 
@@ -85,18 +92,17 @@
 </div>
 
 <div class="cal-box">
-    <div class="cal-head"><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div><div>日</div></div>
+    <div class="cal-head"><div>周一</div><div>周二</div><div>周三</div><div>周四</div><div>周五</div><div>周六</div><div>周日</div></div>
     <div class="cal-body" id="calGrid"></div>
 </div>
 
-<div id="searchModal" class="search-modal">
-    <div class="search-card">
-        <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
-            <span style="font-weight:bold">人员查询</span>
-            <span style="cursor:pointer" onclick="document.getElementById('searchModal').style.display='none'">×</span>
+<div id="searchModal" class="modal-overlay">
+    <div class="modal-card">
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+            <b>人员查询</b><span style="cursor:pointer" onclick="document.getElementById('searchModal').style.display='none'">×</span>
         </div>
-        <div style="display:flex; gap:10px; margin-bottom:10px;">
-            <input id="sInput" placeholder="输入姓名..." style="flex:1; padding:8px; border:1px solid #ccc; border-radius:6px;" onkeydown="if(event.key==='Enter') app.search()">
+        <div style="display:flex; gap:5px; margin-bottom:10px;">
+            <input id="sInput" placeholder="姓名" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:4px;" onkeydown="if(event.key==='Enter') app.search()">
             <button class="btn" onclick="app.search()">查询</button>
         </div>
         <div id="sResult" style="overflow-y:auto; flex:1;"></div>
@@ -112,51 +118,54 @@ window.app = {
     async login() {
         const p = document.getElementById('loginPass').value;
         if(!p) return;
-        document.getElementById('loginMsg').innerText = "正在获取数据...";
+        document.getElementById('loginMsg').innerText = "正在加载...";
         try {
             const res = await fetch(this.api, { method:'POST', body:JSON.stringify({ action:'login', password:p }) });
             const json = await res.json();
             if(res.status === 200) {
                 this.data = json.data || {};
+                if(!this.data.schedules) this.data.schedules = {}; // 容错
                 document.getElementById('loginOverlay').style.display = 'none';
                 this.render();
                 this.renderNotice();
             } else {
                 document.getElementById('loginMsg').innerText = "密码错误";
             }
-        } catch(e) { document.getElementById('loginMsg').innerText = "网络错误"; }
+        } catch(e) { document.getElementById('loginMsg').innerText = "连接失败"; }
     },
 
     render() {
         document.getElementById('dateDisp').innerText = `${this.y}-${String(this.m).padStart(2,'0')}`;
         const grid = document.getElementById('calGrid'); grid.innerHTML = '';
-        const days = new Date(this.y, this.m, 0).getDate();
-        const start = (new Date(this.y, this.m-1, 1).getDay() + 6) % 7;
         
-        for(let i=0; i<start; i++) grid.innerHTML += `<div class="cal-cell" style="background:#f9fafb"></div>`;
+        // 计算日期
+        const firstDay = new Date(this.y, this.m-1, 1);
+        const daysInMonth = new Date(this.y, this.m, 0).getDate();
+        const startEmpty = (firstDay.getDay() + 6) % 7; // 周一为0
         
-        const today = new Date().toISOString().split('T')[0];
+        // 填充开头空白
+        for(let i=0; i<startEmpty; i++) grid.innerHTML += `<div class="cal-cell" style="background:#f8fafc"></div>`;
+        
+        const todayStr = new Date().toISOString().split('T')[0];
         const hList = this.data.holidays[this.y] || [];
 
-        for(let d=1; d<=days; d++) {
+        for(let d=1; d<=daysInMonth; d++) {
             const ds = `${this.y}-${String(this.m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const s = this.data.schedules[ds];
             const isH = hList.includes(ds);
             
-            let html = `<div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                <span style="font-weight:bold; color:${isH?'red':'#333'}">${d}</span>
-                ${isH?'<span style="font-size:10px; color:red">休</span>':''}
-            </div>`;
+            let html = `<div class="date-num"><span>${d}</span>${isH?'<span class="holiday-tag">休</span>':''}</div>`;
             
             if(s) {
-                if(s.leader) html += `<div class="duty-tag tag-l">${s.leader}</div>`;
-                if(s.female) html += `<div class="duty-tag tag-f">${s.female}</div>`;
-                if(s.male) html += `<div class="duty-tag tag-m">${s.male}</div>`;
-                if(s.remark) html += `<div style="font-size:10px; color:#c2410c; margin-top:auto;">${s.remark}</div>`;
+                // 这里修复了显示问题：只要有数据就显示 Tag
+                if(s.leader) html += `<div class="duty-tag tag-l">带: ${s.leader}</div>`;
+                if(s.female) html += `<div class="duty-tag tag-f">女: ${s.female}</div>`;
+                if(s.male) html += `<div class="duty-tag tag-m">男: ${s.male}</div>`;
+                if(s.remark) html += `<div class="remark">${s.remark}</div>`;
             }
             
             const div = document.createElement('div');
-            div.className = `cal-cell ${ds===today?'today':''} ${isH?'holiday':''}`;
+            div.className = `cal-cell ${ds===todayStr?'today':''} ${isH?'holiday':''}`;
             div.innerHTML = html;
             grid.appendChild(div);
         }
@@ -164,26 +173,39 @@ window.app = {
 
     renderNotice() {
         const t = this.data.notice;
-        if(t) {
-            document.getElementById('noticeBar').style.display = 'flex';
+        const bar = document.getElementById('noticeBar');
+        if(t && t.trim()) {
+            bar.style.display = 'flex';
             document.getElementById('noticeText').innerText = t;
+        } else {
+            bar.style.display = 'none';
         }
     },
 
+    openSearch() { document.getElementById('searchModal').style.display = 'flex'; setTimeout(()=>document.getElementById('sInput').focus(), 100); },
     search() {
         const v = document.getElementById('sInput').value.trim();
         const r = document.getElementById('sResult'); r.innerHTML = '';
         if(!v) return;
+        
+        let count = 0;
+        // 倒序查询
         Object.keys(this.data.schedules || {}).sort().reverse().forEach(k => {
             const s = this.data.schedules[k];
-            if(s.leader===v || s.female===v || s.male===v) {
-                r.innerHTML += `<div style="padding:10px; border-bottom:1px solid #eee">
-                    <div style="color:var(--primary); font-weight:bold">${k}</div>
-                    <div style="font-size:13px; color:#666">同组: ${s.leader} / ${s.female} / ${s.male}</div>
-                </div>`;
+            // 模糊匹配
+            if(s.leader?.includes(v) || s.female?.includes(v) || s.male?.includes(v)) {
+                r.innerHTML += `
+                    <div style="padding:10px; border-bottom:1px solid #eee">
+                        <div style="color:var(--primary); font-weight:bold">${k}</div>
+                        <div style="font-size:13px; color:#666">
+                           <span style="background:#eee;padding:1px 4px;border-radius:3px;">${s.leader===v?'带班':(s.female===v?'女值':'男值')}</span>
+                           同组: ${s.leader} / ${s.female} / ${s.male}
+                        </div>
+                    </div>`;
+                count++;
             }
         });
-        if(!r.innerHTML) r.innerHTML = '<div style="text-align:center; padding:20px; color:#999">无记录</div>';
+        if(count===0) r.innerHTML = '<div style="text-align:center; padding:20px; color:#999">无记录</div>';
     },
 
     changeMonth(d) {

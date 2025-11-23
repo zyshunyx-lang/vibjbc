@@ -2,400 +2,537 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>后台管理控制台 V20 Cloud</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>后台管理控制台 (V20 Cloud)</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <style>
-        :root { --primary: #1890ff; --bg: #f0f2f5; --card: #fff; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); padding: 20px; max-width: 1000px; margin: 0 auto; color: #333; }
+        :root { --primary: #4f46e5; --bg: #f3f4f6; --surface: #ffffff; --border: #e5e7eb; --text: #111827; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
         
-        /* 卡片布局 */
-        .card { background: var(--card); padding: 24px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        h2, h3 { margin-top: 0; color: #001529; }
-        
-        /* 按钮与输入框 */
-        button { cursor: pointer; padding: 8px 16px; border-radius: 4px; border: 1px solid #d9d9d9; background: #fff; transition: 0.2s; }
-        button:hover { color: var(--primary); border-color: var(--primary); }
+        /* 容器与卡片 */
+        .container { width: 100%; max-width: 1000px; }
+        .card { background: var(--surface); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid var(--border); overflow: hidden; margin-bottom: 20px; }
+        .card-header { padding: 15px 25px; background: #f9fafb; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .card-body { padding: 25px; }
+
+        /* 按钮与输入 */
+        button { cursor: pointer; padding: 8px 16px; border-radius: 6px; border: 1px solid #d1d5db; background: white; font-size: 13px; transition: 0.2s; }
+        button:hover { background: #f3f4f6; }
         button.primary { background: var(--primary); color: white; border-color: var(--primary); }
-        button.primary:hover { background: #40a9ff; }
-        button.danger { color: #ff4d4f; border-color: #ff4d4f; }
+        button.primary:hover { background: #4338ca; }
+        button.danger { color: #dc2626; border-color: #fecaca; background: #fef2f2; }
+        button.success { color: #059669; border-color: #a7f3d0; background: #ecfdf5; }
         
-        input, select, textarea { padding: 8px; border: 1px solid #d9d9d9; border-radius: 4px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
-        
-        /* Tab 导航 */
-        .tabs { display: flex; border-bottom: 1px solid #f0f0f0; margin-bottom: 20px; }
-        .tab-item { padding: 12px 24px; cursor: pointer; font-weight: 500; border-bottom: 2px solid transparent; }
-        .tab-item.active { color: var(--primary); border-bottom-color: var(--primary); }
+        input, select, textarea { padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; width: 100%; box-sizing: border-box; margin-bottom: 10px; font-size: 14px; }
+
+        /* Tab 导航 (复刻 V20) */
+        .nav-tabs { display: flex; gap: 20px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+        .nav-item { padding: 10px 0; cursor: pointer; color: #6b7280; font-weight: 600; border-bottom: 2px solid transparent; font-size: 14px; }
+        .nav-item.active { color: var(--primary); border-color: var(--primary); }
         .tab-pane { display: none; }
         .tab-pane.active { display: block; }
 
-        /* 表格 */
+        /* 表格 (复刻 V20) */
+        .table-wrap { border: 1px solid var(--border); border-radius: 6px; overflow: auto; max-height: 500px; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th { text-align: left; background: #fafafa; padding: 10px; border-bottom: 1px solid #f0f0f0; }
-        td { padding: 10px; border-bottom: 1px solid #f0f0f0; }
+        th { background: #f9fafb; text-align: left; padding: 10px; border-bottom: 1px solid var(--border); position: sticky; top: 0; }
+        td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+        tr:hover td { background: #f8fafc; }
+
+        /* 模态框 (Edit Modal) */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+        .modal-card { background: white; width: 500px; border-radius: 12px; padding: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
         
-        /* 状态栏 */
-        #statusMsg { position: fixed; top: 20px; right: 20px; background: #fff; padding: 10px 20px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: none; z-index: 999; }
+        /* 状态提示 */
+        #statusMsg { position: fixed; top: 20px; right: 20px; padding: 10px 20px; background: #ecfdf5; color: #065f46; border-radius: 6px; border: 1px solid #a7f3d0; display: none; z-index: 999; }
     </style>
 </head>
 <body>
 
-<div id="loginBox" class="card" style="text-align:center; margin-top:100px; max-width:400px; margin-left:auto; margin-right:auto;">
-    <h2>🔐 管理员登录</h2>
-    <input type="password" id="adminPass" placeholder="输入管理密码 (默认 admin888)" style="text-align:center;">
-    <button class="primary" onclick="app.login()" style="width:100%; margin-top:10px;">登录后台</button>
-</div>
+<div id="statusMsg">✅ 操作成功</div>
 
-<div id="adminPanel" style="display:none;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h2 style="margin:0;">⚙️ 值班管理控制台 <span style="font-size:14px; font-weight:normal; background:#e6f7ff; color:#1890ff; padding:2px 8px; border-radius:4px;">V20 Cloud</span></h2>
-        <div>
-            <button onclick="location.href='index.html'">预览前台</button>
-            <button onclick="location.reload()">退出</button>
+<div class="container">
+    
+    <div id="loginBox" class="card" style="max-width: 400px; margin: 100px auto; text-align: center;">
+        <div class="card-header" style="justify-content: center;">🔐 管理员登录</div>
+        <div class="card-body">
+            <input type="password" id="adminPass" placeholder="请输入管理密码" style="text-align: center; padding: 12px;">
+            <button class="primary" style="width: 100%; padding: 12px; margin-top: 10px;" onclick="app.login()">验证进入</button>
         </div>
     </div>
 
-    <div class="card">
-        <div class="tabs">
-            <div class="tab-item active" onclick="app.switchTab(this, 't-publish')">🚀 发布与公告</div>
-            <div class="tab-item" onclick="app.switchTab(this, 't-person')">👥 人员管理</div>
-            <div class="tab-item" onclick="app.switchTab(this, 't-holiday')">📅 假日管理</div>
-            <div class="tab-item" onclick="app.switchTab(this, 't-rules')">⚡ 排班生成</div>
-            <div class="tab-item" onclick="app.switchTab(this, 't-data')">💾 数据与安全</div>
+    <div id="adminPanel" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="margin:0; color:var(--primary);">⚙️ 值班管理控制台 <span style="font-size:12px; background:#e0e7ff; padding:2px 8px; border-radius:4px;">V20 Cloud</span></h2>
+            <div>
+                <button class="success" onclick="window.open('index.html', '_blank')">↗ 预览前台</button>
+                <button class="danger" onclick="location.reload()">退出</button>
+            </div>
         </div>
 
-        <div id="t-publish" class="tab-pane active">
-            <div style="background:#fffbe6; border:1px solid #ffe58f; padding:15px; border-radius:4px; margin-bottom:20px;">
-                <h3>📢 滚动公告</h3>
-                <input id="noticeInput" placeholder="输入公告内容，将显示在前台顶部...">
-                <button class="primary" onclick="app.saveNotice()">发布公告</button>
-                <button class="danger" onclick="app.clearNotice()">清空</button>
-            </div>
-            
-            <div style="border:1px dashed #d9d9d9; padding:20px; border-radius:4px;">
-                <h3>📥 Excel 排班表导入</h3>
-                <p style="color:#666; font-size:12px;">支持列名：日期, 带班领导, 女值班员, 男值班员, 备注 (如果没有列名，系统会尝试自动识别)</p>
-                <div style="display:flex; gap:10px;">
-                    <input type="file" id="uploadExcel" accept=".xlsx, .xls" style="border:none;">
-                    <button class="primary" onclick="app.importExcel()">开始导入</button>
+        <div class="card">
+            <div class="card-body">
+                <div class="nav-tabs">
+                    <div class="nav-item active" onclick="app.switchTab(this, 'tab-publish')">📢 发布与公告</div>
+                    <div class="nav-item" onclick="app.switchTab(this, 'tab-person')">👥 人员管理</div>
+                    <div class="nav-item" onclick="app.switchTab(this, 'tab-holiday')">📅 假日定义</div>
+                    <div class="nav-item" onclick="app.switchTab(this, 'tab-rules')">⚡ 排班生成</div>
+                    <div class="nav-item" onclick="app.switchTab(this, 'tab-data')">💾 数据与安全</div>
+                    <div class="nav-item" onclick="app.switchTab(this, 'tab-logs')">📜 全局日志</div>
                 </div>
-            </div>
-        </div>
 
-        <div id="t-person" class="tab-pane">
-            <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
-                <select id="manageType" style="width:150px;" onchange="app.renderPerson()">
-                    <option value="leader">带班领导</option>
-                    <option value="female">女值班员</option>
-                    <option value="male">男值班员</option>
-                </select>
-                <button class="primary" onclick="app.editPerson()">+ 添加人员</button>
-            </div>
-            <div id="personList" style="max-height:400px; overflow-y:auto; border:1px solid #f0f0f0;"></div>
-            
-            <div id="editBox" style="display:none; background:#fafafa; padding:15px; margin-top:15px; border:1px solid #eee;">
-                <h4>编辑人员信息</h4>
-                <input type="hidden" id="editIdx">
-                <div style="display:flex; gap:10px;">
-                    <input id="pName" placeholder="姓名">
-                    <input id="pPhone" placeholder="手机号">
+                <div id="tab-publish" class="tab-pane active">
+                    <div style="background:#fff7ed; border:1px solid #fed7aa; padding:15px; border-radius:8px; margin-bottom:20px;">
+                        <h4 style="margin-top:0; color:#c2410c;">📢 前台滚动公告</h4>
+                        <div style="display:flex; gap:10px;">
+                            <input id="noticeInput" placeholder="输入公告内容...">
+                            <button class="primary" onclick="app.saveNotice()">发布</button>
+                            <button class="danger" onclick="app.clearNotice()">关闭</button>
+                        </div>
+                    </div>
                 </div>
-                <input id="pRemark" placeholder="备注">
-                <div style="text-align:right;">
-                    <button onclick="document.getElementById('editBox').style.display='none'">取消</button>
-                    <button class="primary" onclick="app.savePerson()">保存到云端</button>
+
+                <div id="tab-person" class="tab-pane">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:15px; background:#f9fafb; padding:10px; border-radius:8px;">
+                        <select id="manageType" style="width:120px;" onchange="app.renderPersonList()">
+                            <option value="leader">带班领导</option>
+                            <option value="female">女值班员</option>
+                            <option value="male">男值班员</option>
+                        </select>
+                        <div style="display:flex; gap:8px;">
+                            <button onclick="app.showRetired()">👻 历史人员</button>
+                            <button onclick="app.downloadTemplate('person')">⬇ 模板</button>
+                            <input type="file" id="uploadPerson" hidden onchange="app.importExcel(this, 'person')">
+                            <button onclick="document.getElementById('uploadPerson').click()">⬆ 导入</button>
+                            <button class="primary" onclick="app.editPerson()">+ 添加人员</button>
+                        </div>
+                    </div>
+                    <div id="personList" class="table-wrap"></div>
                 </div>
-            </div>
-        </div>
 
-        <div id="t-holiday" class="tab-pane">
-            <div style="display:flex; gap:10px; align-items:center; margin-bottom:15px;">
-                <input type="number" id="hYear" value="2025" style="width:80px;" onchange="app.renderHoliday()">
-                <span>年的假日：</span>
-                <input type="date" id="hStart" style="width:auto;"> 至 <input type="date" id="hEnd" style="width:auto;">
-                <button class="primary" onclick="app.addHolidayRange()">+ 添加区间</button>
-            </div>
-            <div id="holidayChips" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
-        </div>
+                <div id="tab-holiday" class="tab-pane">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <input type="number" id="holidayYearConfig" style="width:80px" onchange="app.renderHolidayChips()">
+                            <button onclick="app.downloadTemplate('holiday')">⬇ 模板</button>
+                            <input type="file" id="uploadHoliday" hidden onchange="app.importExcel(this, 'holiday')">
+                            <button onclick="document.getElementById('uploadHoliday').click()">⬆ 导入Excel</button>
+                        </div>
+                        <div style="display:flex; gap:5px; align-items:center;">
+                            <input type="date" id="hStart" style="width:auto"><span style="font-size:12px">至</span><input type="date" id="hEnd" style="width:auto">
+                            <button class="primary" onclick="app.addHolidayRange()">+ 添加区间</button>
+                        </div>
+                    </div>
+                    <div id="holidayChips" style="min-height:150px; border:1px solid var(--border); padding:15px; border-radius:8px; display:flex; flex-wrap:wrap; gap:6px; background:#f9fafb;"></div>
+                </div>
 
-        <div id="t-rules" class="tab-pane">
-            <div style="background:#e6f7ff; padding:15px; border-radius:4px; margin-bottom:20px;">
-                <strong>⚡ 自动生成说明：</strong> 系统会根据人员列表顺序进行轮转。生成后会自动保存到数据库。
-            </div>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:20px;">
-                <div><label>带班 (工作日) 起始</label><select id="slW"></select></div>
-                <div><label>带班 (节假日) 起始</label><select id="slH"></select></div>
-                <div><label>女值班员 起始</label><select id="sf"></select></div>
-                <div><label>男值班员 起始</label><select id="sm"></select></div>
-            </div>
-            <div style="display:flex; gap:10px; align-items:center;">
-                <label>生成月份：</label>
-                <input type="month" id="genMonth" style="width:auto;">
-                <button class="primary" onclick="app.generate()">🚀 生成该月排班</button>
-            </div>
-        </div>
+                <div id="tab-rules" class="tab-pane">
+                    <div style="background:#eef2ff; color:#3730a3; padding:12px; border-radius:6px; margin-bottom:20px; font-size:13px; border:1px solid #c7d2fe;">
+                        <strong>ℹ️ 规则说明：</strong> 1. <strong>双轨制</strong>：带班领导分为工作日与假日两条独立队列。 2. <strong>备勤顺延</strong>：(需在日历中操作) 使用备勤后，该人员在下月对应队列中跳过一轮。
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:30px;">
+                        <div><label>带班领导 (工作日) 起始</label><select id="startLeaderW"></select></div>
+                        <div><label>带班领导 (假日) 起始</label><select id="startLeaderH"></select></div>
+                        <div><label>女值班员 起始</label><select id="startFemale"></select></div>
+                        <div><label>男值班员 起始</label><select id="startMale"></select></div>
+                    </div>
+                    <div style="text-align:center;">
+                        <label>生成月份：</label><input type="month" id="genMonth" style="width:auto; display:inline-block;">
+                        <button class="primary" style="padding:10px 30px;" onclick="app.generate()">⚡ 生成排班</button>
+                    </div>
+                </div>
 
-        <div id="t-data" class="tab-pane">
-            <h3>🔐 修改密码</h3>
-            <div style="max-width:300px; margin-bottom:20px;">
-                <input id="newAdmin" placeholder="新管理密码">
-                <input id="newView" placeholder="新查看密码">
-                <button class="primary" onclick="app.changePass()">更新系统密码</button>
+                <div id="tab-data" class="tab-pane">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:30px;">
+                        <div>
+                            <h3>🔐 修改系统密码</h3>
+                            <input id="newAdmin" placeholder="新·管理员密码 (拥有所有权限)">
+                            <input id="newView" placeholder="新·查看密码 (仅前台查看)">
+                            <button class="primary" onclick="app.changePass()">更新密码</button>
+                        </div>
+                        <div style="border-left:1px solid #eee; padding-left:30px;">
+                            <h3>💾 数据维护</h3>
+                            <button class="success" onclick="app.exportGlobalData()">📥 备份全站数据 (.json)</button>
+                            <div style="margin-top:10px;">
+                                <input type="file" id="uploadGlobal" hidden onchange="app.importGlobalData(this)">
+                                <button onclick="document.getElementById('uploadGlobal').click()">📤 恢复备份</button>
+                            </div>
+                            <div style="margin-top:20px; padding-top:20px; border-top:1px dashed #eee;">
+                                <button class="danger" onclick="app.confirmClear()">🗑️ 清空所有数据</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-logs" class="tab-pane">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span>操作流水 (最近100条)</span>
+                        <button class="danger" onclick="app.confirmClearLogs()">清空日志</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table id="logTable"><thead><tr><th width="160">时间</th><th width="120">类型</th><th>详情</th></tr></thead><tbody id="logBody"></tbody></table>
+                    </div>
+                </div>
+
             </div>
-            <hr>
-            <h3>📤 数据备份</h3>
-            <button onclick="app.downloadJSON()">下载全量数据 (.json)</button>
         </div>
     </div>
 </div>
 
-<div id="statusMsg"></div>
+<div id="editModal" class="modal-overlay">
+    <div class="modal-card">
+        <h3 style="margin-top:0;">👤 编辑人员信息</h3>
+        <input type="hidden" id="editId"><input type="hidden" id="editType">
+        
+        <label>姓名</label><input type="text" id="pName">
+        
+        <div id="leaderFields" style="display:none; gap:10px;">
+            <div style="flex:1"><label>职务</label><input type="text" id="pJob"></div>
+            <div style="flex:1"><label>座机</label><input type="text" id="pLandline"></div>
+        </div>
+        
+        <label>手机</label><input type="text" id="pPhone">
+        <label>备注</label><textarea id="pRemark" rows="2"></textarea>
+        
+        <div style="background:#fef2f2; padding:10px; border-radius:6px; border:1px solid #fecaca; margin-top:10px;">
+            <label style="color:#dc2626; font-size:12px;">⛔ 轮空/跳过设置 (如: 休产假)</label>
+            <div style="display:flex; gap:5px; margin-top:5px;">
+                <input type="date" id="skipStart" style="width:auto"> <span style="align-self:center">至</span> 
+                <input type="date" id="skipEnd" style="width:auto">
+                <button class="danger" onclick="app.addSkip()">+</button>
+            </div>
+            <div id="skipList" style="margin-top:5px; font-size:12px;"></div>
+        </div>
+
+        <div style="margin-top:20px; text-align:right; display:flex; justify-content:flex-end; gap:10px;">
+            <button onclick="document.getElementById('editModal').style.display='none'">取消</button>
+            <button class="primary" onclick="app.savePerson()">保存</button>
+        </div>
+    </div>
+</div>
+
+<div id="retiredModal" class="modal-overlay">
+    <div class="modal-card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="margin:0;">👻 历史人员库</h3>
+            <button onclick="document.getElementById('retiredModal').style.display='none'">×</button>
+        </div>
+        <div class="table-wrap" style="margin-top:15px;">
+            <table id="retiredTable"><thead><tr><th>姓名</th><th>状态</th></tr></thead><tbody></tbody></table>
+        </div>
+    </div>
+</div>
 
 <script>
+/* V20 Cloud Edition - Integrated Logic */
 window.app = {
     api: '/.netlify/functions/api',
     token: null,
-    // 核心数据结构 (保持与V20一致)
     data: {
-        personnel: { leader:[], female:[], male:[] },
-        schedules: {}, // key: YYYY-MM-DD
-        holidays: {},  // key: YYYY -> array
-        notice: ""
+        personnel: { leader: [], female: [], male: [] },
+        holidays: {}, schedules: {}, logs: [], standbyUsed: [],
+        notice: "",
+        tempSkips: []
     },
 
-    // --- 1. 基础通信 ---
+    // --- 1. 初始化与登录 ---
+    init() { document.getElementById('holidayYearConfig').value = new Date().getFullYear(); document.getElementById('genMonth').value = new Date().toISOString().substring(0,7); },
+    
     async login() {
         const p = document.getElementById('adminPass').value;
         if(!p) return;
         try {
-            const res = await fetch(this.api, { method:'POST', body:JSON.stringify({ action:'login', password:p }) });
+            const res = await fetch(this.api, { method: 'POST', body: JSON.stringify({ action: 'login', password: p }) });
             const json = await res.json();
             if(json.role === 'admin') {
                 this.token = p;
-                // 合并数据，防止云端数据字段缺失
+                // 合并数据，确保字段完整
                 if(json.data) {
                     this.data = { ...this.data, ...json.data };
+                    // 容错处理
                     if(!this.data.personnel) this.data.personnel = {leader:[],female:[],male:[]};
+                    if(!this.data.holidays) this.data.holidays = {};
+                    if(!this.data.schedules) this.data.schedules = {};
+                    if(!this.data.logs) this.data.logs = [];
                 }
-                
                 document.getElementById('loginBox').style.display = 'none';
                 document.getElementById('adminPanel').style.display = 'block';
                 
-                // 初始化各面板
-                document.getElementById('noticeInput').value = this.data.notice || '';
-                document.getElementById('genMonth').value = new Date().toISOString().slice(0,7);
-                this.renderPerson();
-                this.renderHoliday();
-                this.updateGenSelects();
-                this.msg("登录成功，数据已同步");
-            } else { alert("密码错误"); }
-        } catch(e) { alert("网络连接失败"); console.error(e); }
+                // 初始化 UI
+                this.renderPersonList();
+                this.renderHolidayChips();
+                this.renderLogs();
+                this.updateGenOptions();
+                document.getElementById('noticeInput').value = this.data.notice || "";
+                this.msg('登录成功，数据已同步');
+            } else { alert('密码错误'); }
+        } catch(e) { alert('网络连接失败'); }
     },
 
+    // --- 2. 核心保存 (云同步) ---
     async save() {
-        // 每次操作后调用，保存到 Neon 数据库
         try {
-            const res = await fetch(this.api, { 
-                method:'POST', 
-                body:JSON.stringify({ action:'save', password:this.token, newData:this.data }) 
-            });
+            const res = await fetch(this.api, { method: 'POST', body: JSON.stringify({ action: 'save', password: this.token, newData: this.data }) });
             const j = await res.json();
-            if(j.success) this.msg("✅ 数据已自动保存到云端");
-            else this.msg("❌ 保存失败");
-        } catch(e) { this.msg("❌ 网络错误，保存失败"); }
+            if(j.success) this.msg('✅ 云端同步成功');
+            else alert('保存失败');
+        } catch(e) { alert('网络错误'); }
     },
+    msg(t) { const m=document.getElementById('statusMsg'); m.innerText=t; m.style.display='block'; setTimeout(()=>m.style.display='none', 3000); },
 
-    msg(t) {
-        const d = document.getElementById('statusMsg');
-        d.innerText = t; d.style.display='block';
-        setTimeout(()=>d.style.display='none', 3000);
+    // --- 3. 日志系统 (V20) ---
+    log(type, detail, meta=null) {
+        this.data.logs.unshift({time: new Date().toLocaleString(), type, detail, meta});
+        if(this.data.logs.length > 500) this.data.logs.pop();
+        this.save(); this.renderLogs();
     },
-
-    switchTab(el, id) {
-        document.querySelectorAll('.tab-item').forEach(x=>x.classList.remove('active'));
-        document.querySelectorAll('.tab-pane').forEach(x=>x.classList.remove('active'));
-        el.classList.add('active'); document.getElementById(id).classList.add('active');
+    renderLogs() {
+        document.getElementById('logBody').innerHTML = this.data.logs.map((l,i)=>
+            `<tr><td>${l.time}</td><td>${l.type}</td><td>${l.detail} ${l.meta&&l.meta.act==='restore'?`<button class="success" style="padding:2px 6px;font-size:10px;" onclick="app.restoreLog(${i})">恢复</button>`:''}</td></tr>`
+        ).join('');
     },
-
-    // --- 2. 公告 & 导入 ---
-    saveNotice() { this.data.notice = document.getElementById('noticeInput').value; this.save(); },
-    clearNotice() { this.data.notice = ""; document.getElementById('noticeInput').value=""; this.save(); },
-    
-    importExcel() {
-        const f = document.getElementById('uploadExcel').files[0];
-        if(!f) return;
-        const r = new FileReader();
-        r.onload = e => {
-            const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
-            const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-            let cnt = 0;
-            rows.forEach(row => {
-                // 模糊匹配列名
-                let date = row['日期']||row['Date']||row['date'];
-                if(typeof date==='number') date=new Date(Math.round((date-25569)*86400*1000)).toISOString().split('T')[0];
-                if(date && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                    this.data.schedules[date] = {
-                        leader: row['带班领导']||row['带班']||row['Leader']||'',
-                        female: row['女值班员']||row['女值']||row['Female']||'',
-                        male: row['男值班员']||row['男值']||row['Male']||'',
-                        remark: row['备注']||row['Remark']||''
-                    };
-                    cnt++;
-                }
-            });
-            this.save();
-            alert(`成功导入 ${cnt} 条排班记录`);
-        };
-        r.readAsArrayBuffer(f);
+    restoreLog(i) {
+        const l = this.data.logs[i];
+        if(l.meta && l.meta.act === 'restore') {
+            this.data.personnel[l.meta.t].push(l.meta.p);
+            this.log('恢复人员', `撤销删除: ${l.meta.p.name}`);
+            this.save(); this.renderPersonList(); alert('人员已恢复');
+        }
     },
+    confirmClearLogs() { if(confirm('清空日志？')) { this.data.logs=[]; this.save(); this.renderLogs(); } },
 
-    // --- 3. 人员管理 ---
-    renderPerson() {
+    // --- 4. 人员管理 (V20 完整逻辑) ---
+    renderPersonList() {
         const t = document.getElementById('manageType').value;
-        const list = this.data.personnel[t] || [];
-        const div = document.getElementById('personList');
-        div.innerHTML = `<table><thead><tr><th>姓名</th><th>手机</th><th>操作</th></tr></thead><tbody>` +
-            list.map((p,i) => `<tr><td>${p.name}</td><td>${p.phone||''}</td>
-            <td><button onclick="app.editPerson(${i})">编辑</button> 
-            <button class="danger" onclick="app.delPerson(${i})">删除</button></td></tr>`).join('') + 
+        const l = this.data.personnel[t] || [];
+        document.getElementById('personList').innerHTML = `<table><thead><tr><th>姓名</th><th>详情</th><th>备注</th><th>操作</th></tr></thead><tbody>` +
+            l.map((p,i) => `<tr><td><b>${p.name}</b>${p.skipRanges&&p.skipRanges.length?' <span style="color:red;font-size:10px">[轮空]</span>':''}</td>
+            <td>${t==='leader'?`${p.job||''} ${p.landline||''} `:''}${p.phone||''}</td>
+            <td>${p.remark||''}</td>
+            <td><button onclick="app.movePerson('${t}',${i},-1)">↑</button> <button onclick="app.movePerson('${t}',${i},1)">↓</button> 
+            <button onclick="app.editPerson(${i})">编辑</button> <button class="danger" onclick="app.delPerson('${t}',${i})">×</button></td></tr>`).join('') + 
             `</tbody></table>`;
         this.updateGenSelects();
     },
+    movePerson(t, i, d) {
+        const l = this.data.personnel[t];
+        if(i+d>=0 && i+d<l.length) { [l[i], l[i+d]] = [l[i+d], l[i]]; this.save(); this.renderPersonList(); }
+    },
     editPerson(i=null) {
         const t = document.getElementById('manageType').value;
-        document.getElementById('editBox').style.display='block';
-        document.getElementById('editIdx').value = i!==null?i:'new';
-        const p = i!==null?this.data.personnel[t][i]:{name:'',phone:'',remark:''};
+        document.getElementById('editModal').style.display='flex';
+        document.getElementById('editType').value = t;
+        document.getElementById('editId').value = i!==null?i:'new';
+        document.getElementById('leaderFields').style.display = t==='leader'?'flex':'none';
+        
+        const p = i!==null ? this.data.personnel[t][i] : {name:'', skipRanges:[]};
         document.getElementById('pName').value = p.name;
         document.getElementById('pPhone').value = p.phone||'';
         document.getElementById('pRemark').value = p.remark||'';
+        if(t==='leader') {
+            document.getElementById('pJob').value = p.job||'';
+            document.getElementById('pLandline').value = p.landline||'';
+        }
+        this.data.tempSkips = [...(p.skipRanges||[])];
+        this.renderSkips();
+    },
+    addSkip() { 
+        const s=document.getElementById('skipStart').value, e=document.getElementById('skipEnd').value; 
+        if(s&&e) { this.data.tempSkips.push({start:s, end:e}); this.renderSkips(); } 
+    },
+    renderSkips() { 
+        document.getElementById('skipList').innerHTML = this.data.tempSkips.map((r,i)=>
+            `${r.start}~${r.end} <span style="cursor:pointer;color:red" onclick="app.data.tempSkips.splice(${i},1);app.renderSkips()">×</span>`
+        ).join('; '); 
     },
     savePerson() {
-        const t = document.getElementById('manageType').value;
-        const idx = document.getElementById('editIdx').value;
-        const n = document.getElementById('pName').value.trim();
+        const t=document.getElementById('editType').value, id=document.getElementById('editId').value, n=document.getElementById('pName').value;
         if(!n) return;
-        const p = { name:n, phone:document.getElementById('pPhone').value, remark:document.getElementById('pRemark').value };
+        const p = { name:n, phone:document.getElementById('pPhone').value, remark:document.getElementById('pRemark').value, skipRanges:this.data.tempSkips };
+        if(t==='leader') { p.job=document.getElementById('pJob').value; p.landline=document.getElementById('pLandline').value; }
         
-        if(idx==='new') this.data.personnel[t].push(p);
-        else this.data.personnel[t][parseInt(idx)] = p;
+        if(id==='new') { this.data.personnel[t].push(p); this.log('添加人员', `${t}:${n}`); }
+        else { this.data.personnel[t][parseInt(id)] = p; this.log('修改人员', `${t}:${n}`); }
         
-        this.save();
-        this.renderPerson();
-        document.getElementById('editBox').style.display='none';
+        this.save(); this.renderPersonList(); document.getElementById('editModal').style.display='none';
     },
-    delPerson(i) {
-        if(confirm("确定删除？")) {
-            const t = document.getElementById('manageType').value;
+    delPerson(t, i) {
+        const p = this.data.personnel[t][i];
+        if(confirm(`删除 ${p.name}？`)) {
             this.data.personnel[t].splice(i,1);
-            this.save();
-            this.renderPerson();
+            this.log('删除人员', `${t}:${p.name}`, {act:'restore', t:t, p:p});
+            this.save(); this.renderPersonList();
         }
     },
+    showRetired() {
+        const b = document.querySelector('#retiredTable tbody'); b.innerHTML='';
+        const current = new Set();
+        ['leader','female','male'].forEach(t => this.data.personnel[t].forEach(p=>current.add(p.name)));
+        // 遍历排班表找不在现役名单里的人
+        const history = new Set();
+        Object.values(this.data.schedules).forEach(m => Object.values(m).forEach(v => {
+            [v.leader, v.female, v.male].forEach(n => { if(n && !current.has(n)) history.add(n); });
+        }));
+        history.forEach(n => b.innerHTML += `<tr><td>${n}</td><td><span style="background:#eee;padding:2px 6px;border-radius:4px;">历史记录</span></td></tr>`);
+        document.getElementById('retiredModal').style.display='flex';
+    },
 
-    // --- 4. 假日管理 ---
-    renderHoliday() {
-        const y = document.getElementById('hYear').value;
+    // --- 5. 假日管理 ---
+    renderHolidayChips() {
+        const y = document.getElementById('holidayYearConfig').value;
         const list = this.data.holidays[y] || [];
         document.getElementById('holidayChips').innerHTML = list.sort().map(d => 
-            `<span style="background:#fff1f0; border:1px solid #ffa39e; padding:2px 8px; border-radius:4px; font-size:12px;">
-                ${d.substring(5)} <span style="cursor:pointer;color:red;font-weight:bold" onclick="app.delHoliday('${y}','${d}')">×</span>
+            `<span style="background:white; border:1px solid #fca5a5; padding:4px 8px; border-radius:4px; font-size:12px; color:#b91c1c;">
+                ${d.substring(5)} <span style="cursor:pointer;font-weight:bold;margin-left:4px;" onclick="app.delHoliday('${y}','${d}')">×</span>
             </span>`
         ).join('');
     },
     addHolidayRange() {
-        const y = document.getElementById('hYear').value;
-        const s = document.getElementById('hStart').value;
-        const e = document.getElementById('hEnd').value;
-        if(!s || !e) return;
-        
-        if(!this.data.holidays[y]) this.data.holidays[y] = [];
-        let curr = new Date(s); const end = new Date(e);
-        while(curr <= end) {
-            const str = curr.toISOString().split('T')[0];
-            if(!this.data.holidays[y].includes(str)) this.data.holidays[y].push(str);
-            curr.setDate(curr.getDate()+1);
+        const y=document.getElementById('holidayYearConfig').value, s=document.getElementById('hStart').value, e=document.getElementById('hEnd').value;
+        if(!s||!e) return;
+        let d=new Date(s), en=new Date(e), c=0;
+        if(!this.data.holidays[y]) this.data.holidays[y]=[];
+        while(d<=en) {
+            const str = d.toISOString().split('T')[0];
+            if(!this.data.holidays[y].includes(str)) { this.data.holidays[y].push(str); c++; }
+            d.setDate(d.getDate()+1);
         }
-        this.save();
-        this.renderHoliday();
+        this.log('添加假日', `${s}至${e} (${c}天)`); this.save(); this.renderHolidayChips();
     },
-    delHoliday(y, d) {
-        this.data.holidays[y] = this.data.holidays[y].filter(x => x !== d);
-        this.save();
-        this.renderHoliday();
-    },
+    delHoliday(y,d) { this.data.holidays[y]=this.data.holidays[y].filter(x=>x!==d); this.save(); this.renderHolidayChips(); },
 
-    // --- 5. 自动生成 ---
+    // --- 6. 排班生成 (V20 逻辑移植) ---
     updateGenSelects() {
-        const fill = (id, t) => document.getElementById(id).innerHTML = 
-            (this.data.personnel[t]||[]).map(p => `<option value="${p.name}">${p.name}</option>`).join('');
-        fill('slW', 'leader'); fill('slH', 'leader');
-        fill('sf', 'female'); fill('sm', 'male');
+        const fill = (id, t) => document.getElementById(id).innerHTML = (this.data.personnel[t]||[]).map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+        fill('startLeaderW','leader'); fill('startLeaderH','leader'); fill('startFemale','female'); fill('startMale','male');
     },
+    getIdx(t, id) { return (this.data.personnel[t]||[]).findIndex(p => p.name === document.getElementById(id).value); },
     generate() {
-        const mStr = document.getElementById('genMonth').value;
-        if(!mStr) return alert("请选择月份");
-        const [y, m] = mStr.split('-').map(Number);
+        const ms = document.getElementById('genMonth').value; if(!ms) return alert('请选择月份');
+        const [y, m] = ms.split('-').map(Number);
         
-        // 简单队列生成算法 (不涉及数据库复杂回溯，仅做当前月份生成)
-        // 获取起始人员索引
-        const getIdx = (id, type) => {
-            const name = document.getElementById(id).value;
-            return (this.data.personnel[type]||[]).findIndex(p => p.name === name);
-        };
-        
-        let idxLW = getIdx('slW', 'leader'), idxLH = getIdx('slH', 'leader');
-        let idxF = getIdx('sf', 'female'), idxM = getIdx('sm', 'male');
-        
-        if(idxLW<0 || idxLH<0 || idxF<0 || idxM<0) return alert("请先在人员管理中添加足够的人员");
-        
+        // 1. 获取起始索引
+        let idxLW = this.getIdx('leader', 'startLeaderW');
+        let idxLH = this.getIdx('leader', 'startLeaderH');
+        let idxF = this.getIdx('female', 'startFemale');
+        let idxM = this.getIdx('male', 'startMale');
+        if(idxLW<0 || idxLH<0 || idxF<0 || idxM<0) return alert('请确保人员列表不为空');
+
+        // 2. 运行 V20 算法
         const days = new Date(y, m, 0).getDate();
         const hList = this.data.holidays[y] || [];
+        const pL = this.data.personnel.leader, pF = this.data.personnel.female, pM = this.data.personnel.male;
         
-        const listL = this.data.personnel.leader;
-        const listF = this.data.personnel.female;
-        const listM = this.data.personnel.male;
+        // 核心选取函数 (含轮空判断)
+        const pick = (list, startIdx, dateStr) => {
+            let cnt = 0, curr = startIdx;
+            while(cnt < list.length) {
+                const p = list[curr % list.length];
+                // 检查轮空
+                const skip = (p.skipRanges||[]).some(r => dateStr >= r.start && dateStr <= r.end);
+                if(!skip) return { name: p.name, nextIdx: (curr + 1) % list.length };
+                curr++; cnt++;
+            }
+            return { name: "(无人可用)", nextIdx: curr % list.length };
+        };
 
         for(let d=1; d<=days; d++) {
-            const dateStr = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-            const isH = hList.includes(dateStr);
+            const ds = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const isH = hList.includes(ds);
             
-            let lName, fName, mName;
+            let lRes, fRes, mRes;
             
-            // 带班领导：分平日/假日队列
-            if(isH) {
-                lName = listL[idxLH % listL.length].name;
-                idxLH++;
-            } else {
-                lName = listL[idxLW % listL.length].name;
-                idxLW++;
-            }
+            if(isH) { lRes = pick(pL, idxLH, ds); idxLH = lRes.nextIdx; } 
+            else    { lRes = pick(pL, idxLW, ds); idxLW = lRes.nextIdx; }
             
-            // 队员：单一队列
-            fName = listF[idxF % listF.length].name; idxF++;
-            mName = listM[idxM % listM.length].name; idxM++;
+            fRes = pick(pF, idxF, ds); idxF = fRes.nextIdx;
+            mRes = pick(pM, idxM, ds); idxM = mRes.nextIdx;
             
-            this.data.schedules[dateStr] = { leader: lName, female: fName, male: mName, remark: '' };
+            this.data.schedules[ds] = { leader: lRes.name, female: fRes.name, male: mRes.name, remark: '' };
         }
         
+        this.log('生成排班', ms);
         this.save();
-        alert(`已生成 ${mStr} 的排班表！`);
+        alert(`✅ ${ms} 排班生成完毕！`);
     },
 
-    // --- 6. 密码与备份 ---
+    // --- 7. 工具: 导入导出/公告/密码 ---
+    saveNotice() { this.data.notice = document.getElementById('noticeInput').value; this.save(); },
+    clearNotice() { this.data.notice = ""; document.getElementById('noticeInput').value=""; this.save(); },
+    
     changePass() {
-        const na = document.getElementById('newAdmin').value;
-        const nv = document.getElementById('newView').value;
-        if(confirm('确定修改密码？')) {
+        const na=document.getElementById('newAdmin').value, nv=document.getElementById('newView').value;
+        if(confirm('修改密码？')) {
             fetch(this.api, { method:'POST', body:JSON.stringify({ action:'change_pass', password:this.token, newAdminPass:na, newViewPass:nv }) })
-            .then(r=>r.json()).then(j=>{ if(j.success) alert('修改成功'); });
+            .then(r=>r.json()).then(j=>{ if(j.success) alert('密码已修改'); });
         }
     },
-    downloadJSON() {
-        const b = new Blob([JSON.stringify(this.data)],{type:'application/json'});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(b);
-        a.download = 'duty_backup.json';
-        a.click();
+    
+    downloadTemplate(type) {
+        let data, name;
+        if(type==='person') { data=[{"人员类型":"带班领导","姓名":"张三","手机":"138","职务":"处长"},{"人员类型":"女值班员","姓名":"李四","手机":""}]; name="人员模板.xlsx"; }
+        else { data=[{"日期":"2025-01-01"}]; name="假日模板.xlsx"; }
+        XLSX.writeFile(XLSX.utils.book_new(XLSX.utils.json_to_sheet(data)), name);
+    },
+    
+    importExcel(input, type) {
+        const f = input.files[0]; if(!f) return;
+        const r = new FileReader();
+        r.onload = e => {
+            const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+            const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+            if(type === 'person') {
+                const map = {"带班领导":"leader","女值班员":"female","男值班员":"male"};
+                let c = 0;
+                rows.forEach(row => {
+                    const t = map[row['人员类型']];
+                    const n = row['姓名'];
+                    if(t && n) {
+                        this.data.personnel[t].push({ name:n, phone:row['手机'], job:row['职务'], landline:row['座机'], remark:row['备注'], skipRanges:[] });
+                        c++;
+                    }
+                });
+                this.log('导入人员', `${c}条`);
+                this.renderPersonList();
+            } else if(type === 'holiday') {
+                let c = 0;
+                rows.forEach(row => {
+                    let d = row['日期'];
+                    if(typeof d==='number') d=new Date(Math.round((d-25569)*86400*1000)).toISOString().split('T')[0];
+                    if(d) {
+                        const y = d.substring(0,4);
+                        if(!this.data.holidays[y]) this.data.holidays[y]=[];
+                        if(!this.data.holidays[y].includes(d)) { this.data.holidays[y].push(d); c++; }
+                    }
+                });
+                this.log('导入假日', `${c}条`);
+                this.renderHolidayChips();
+            }
+            this.save(); input.value=''; alert('导入完成');
+        };
+        r.readAsArrayBuffer(f);
+    },
+    
+    exportGlobalData() {
+        const b = new Blob([JSON.stringify(this.data)], {type:'application/json'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `backup_${new Date().toISOString().slice(0,10)}.json`; a.click();
+    },
+    importGlobalData(input) {
+        const f = input.files[0];
+        const r = new FileReader();
+        r.onload = e => {
+            try {
+                this.data = JSON.parse(e.target.result);
+                this.save(); alert('恢复成功，即将刷新'); location.reload();
+            } catch(err) { alert('文件格式错误'); }
+        };
+        r.readAsText(f);
+    },
+    confirmClear() { if(confirm('确定清空所有数据（人员、排班、假日）？此操作不可恢复！')) { this.data={personnel:{leader:[],female:[],male:[]},holidays:{},schedules:{},logs:[]}; this.save(); location.reload(); } },
+    switchTab(el, id) {
+        document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(x=>x.classList.remove('active'));
+        el.classList.add('active'); document.getElementById(id).classList.add('active');
     }
 };
 </script>

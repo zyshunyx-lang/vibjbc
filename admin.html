@@ -2,77 +2,118 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>后台管理系统 (V29 Pro Fixed)</title>
+    <title>后台管理系统 (V29 Pro UI)</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <style>
         :root { 
-            --primary: #2563eb; --bg: #f1f5f9; --surface: #ffffff; --border: #e2e8f0;
-            --text: #0f172a; 
+            --primary: #2563eb; --primary-hover: #1d4ed8;
+            --bg: #f8fafc; --surface: #ffffff; 
+            --border: #e2e8f0; --text: #334155; --text-light: #64748b;
             --leader-bg: #e0e7ff; --leader-text: #3730a3;
             --female-bg: #fce7f3; --female-text: #9d174d;
             --male-bg: #dcfce7;   --male-text: #166534;
             --holiday-bg: #fef2f2; --holiday-text: #dc2626;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
         }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         
-        .top-bar { height: 50px; background: white; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; justify-content: space-between; flex-shrink: 0; }
-        .app-title { font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+        /* 顶部栏 */
+        .top-bar { height: 56px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 24px; justify-content: space-between; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.03); z-index: 20; }
+        .app-title { font-weight: 700; font-size: 16px; color: var(--text); display: flex; align-items: center; gap: 12px; }
         
+        /* 主布局 */
         .layout { display: flex; flex: 1; overflow: hidden; }
-        .left-panel { flex: 1; display: flex; flex-direction: column; padding: 15px; overflow: hidden; border-right: 1px solid var(--border); background: #f8fafc; }
-        .right-panel { width: 420px; background: white; display: flex; flex-direction: column; border-left: 1px solid var(--border); box-shadow: -4px 0 15px rgba(0,0,0,0.03); z-index: 10; }
         
-        button { cursor: pointer; padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: white; font-size: 13px; transition: 0.1s; white-space: nowrap; }
-        button:hover { background: #f1f5f9; border-color: #94a3b8; }
-        button.primary { background: var(--primary); color: white; border-color: var(--primary); }
-        button.primary:hover { background: #1d4ed8; }
+        /* 左侧日历面板 (自适应) */
+        .left-panel { flex: 1; display: flex; flex-direction: column; padding: 20px; overflow: hidden; background: #f1f5f9; min-width: 400px; }
+        
+        /* 右侧设置面板 (加宽至 600px) */
+        .right-panel { width: 600px; background: var(--surface); display: flex; flex-direction: column; border-left: 1px solid var(--border); box-shadow: -5px 0 25px rgba(0,0,0,0.03); z-index: 10; transition: width 0.2s; }
+        
+        /* 按钮样式 */
+        button { cursor: pointer; padding: 8px 14px; border-radius: 6px; border: 1px solid #cbd5e1; background: white; font-size: 13px; font-weight: 500; color: var(--text); transition: all 0.15s; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+        button:hover { background: #f8fafc; border-color: #94a3b8; transform: translateY(-1px); }
+        button:active { transform: translateY(0); }
+        
+        button.primary { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2); }
+        button.primary:hover { background: var(--primary-hover); }
+        
         button.success { background: #10b981; color: white; border-color: #10b981; }
         button.success:hover { background: #059669; }
-        button.danger { color: #ef4444; border-color: #fecaca; background: #fef2f2; }
-        button.danger:hover { background: #fee2e2; border-color: #fca5a5; }
         
-        /* 排序按钮 */
-        button.sort-btn { padding: 4px 8px; color: #64748b; }
-        button.sort-btn:hover { color: var(--primary); border-color: var(--primary); }
+        button.danger { color: #dc2626; border-color: #fca5a5; background: #fef2f2; }
+        button.danger:hover { background: #fee2e2; border-color: #ef4444; }
 
-        input, select, textarea { padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; box-sizing: border-box; margin-bottom: 8px; font-size: 13px; }
+        button.icon-btn { padding: 6px; color: var(--text-light); border: 1px solid transparent; background: transparent; }
+        button.icon-btn:hover { background: #f1f5f9; color: var(--primary); border-color: #e2e8f0; }
 
-        .cal-controls { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; background: white; padding: 10px; border-radius: 8px; border: 1px solid var(--border); gap: 10px; }
+        /* 表单控件 */
+        input, select, textarea { padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; box-sizing: border-box; margin-bottom: 12px; font-size: 14px; transition: border 0.2s; background: #fff; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); }
+        label { display: block; font-size: 12px; font-weight: 600; color: var(--text-light); margin-bottom: 4px; }
+
+        /* 日历相关 */
+        .cal-controls { display: flex; justify-content: space-between; margin-bottom: 15px; align-items: center; background: white; padding: 12px; border-radius: 10px; border: 1px solid var(--border); box-shadow: var(--shadow); }
         .date-ctrl { display: flex; gap: 5px; align-items: center; }
         .action-btns { display: flex; gap: 8px; }
 
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; flex: 1; }
-        .cal-head { background: #f1f5f9; padding: 8px; text-align: center; font-size: 12px; font-weight: 600; color: #64748b; }
-        .cal-cell { background: white; padding: 6px; min-height: 80px; display: flex; flex-direction: column; gap: 3px; cursor: pointer; }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; flex: 1; box-shadow: var(--shadow); }
+        .cal-head { background: #f8fafc; padding: 10px; text-align: center; font-size: 13px; font-weight: 600; color: var(--text-light); }
+        .cal-cell { background: white; padding: 6px; min-height: 80px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; }
         .cal-cell:hover { background: #f8fafc; }
         .cal-cell.holiday { background: var(--holiday-bg); }
         .cal-cell.empty { background: #f9fafb; pointer-events: none; }
+        .date-num { font-weight: 700; font-size: 15px; display: flex; justify-content: space-between; color: #94a3b8; padding: 0 2px; }
         
-        .date-num { font-weight: 700; font-size: 14px; display: flex; justify-content: space-between; margin-bottom: 2px; }
-        .pill { font-size: 11px; padding: 2px 5px; border-radius: 4px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pill { font-size: 12px; padding: 3px 6px; border-radius: 4px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
         .pill.l { background: var(--leader-bg); color: var(--leader-text); }
         .pill.f { background: var(--female-bg); color: var(--female-text); }
         .pill.m { background: var(--male-bg); color: var(--male-text); }
-        .remark-text { font-size: 10px; color: #c2410c; border-top: 1px dashed #e2e8f0; margin-top: auto; white-space: pre-wrap; word-break: break-all; }
+        .remark-text { font-size: 11px; color: #c2410c; border-top: 1px dashed #e2e8f0; margin-top: auto; padding-top: 2px; white-space: pre-wrap; word-break: break-all; }
 
-        .tabs { display: flex; border-bottom: 1px solid var(--border); background: #f8fafc; }
-        .tab { flex: 1; text-align: center; padding: 12px 0; font-size: 13px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; }
-        .tab.active { color: var(--primary); border-bottom-color: var(--primary); background: white; }
-        .tab-content { flex: 1; overflow-y: auto; padding: 20px; }
-        .tab-pane { display: none; }
+        /* === 优化后的 Tabs === */
+        .tabs { display: flex; padding: 10px 15px 0; background: var(--surface); border-bottom: 1px solid var(--border); gap: 5px; }
+        .tab { 
+            padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--text-light); cursor: pointer; 
+            border-radius: 8px 8px 0 0; border: 1px solid transparent; border-bottom: none;
+            transition: all 0.2s;
+        }
+        .tab:hover { color: var(--primary); background: #f1f5f9; }
+        .tab.active { color: var(--primary); background: #fff; border-color: var(--border); border-bottom: 1px solid #fff; margin-bottom: -1px; z-index: 2; box-shadow: 0 -2px 5px rgba(0,0,0,0.02); }
+        
+        .tab-content { flex: 1; overflow-y: auto; padding: 25px; background: #fff; }
+        .tab-pane { display: none; animation: fadeIn 0.2s; }
         .tab-pane.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        .table-container { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; font-size: 13px; }
-        table { width: 100%; border-collapse: collapse; }
-        th { background: #f8fafc; text-align: left; padding: 8px; border-bottom: 1px solid var(--border); position: sticky; top: 0; }
-        td { padding: 8px; border-bottom: 1px solid var(--border); }
+        /* === 优化后的表格 (人员管理) === */
+        .table-container { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: var(--shadow); background: white; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        th { background: #f8fafc; text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--border); position: sticky; top: 0; font-size: 12px; color: var(--text-light); text-transform: uppercase; font-weight: 700; z-index: 5; }
+        td { padding: 10px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f8fafc; }
         
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
-        .modal-box { background: white; padding: 20px; border-radius: 12px; width: 400px; max-width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+        .suspended-row td { color: #cbd5e1; background: #f9fafb; text-decoration: line-through; }
+        .suspended-row button { text-decoration: none; opacity: 0.5; }
+        .suspended-row button:hover { opacity: 1; }
+
+        /* 操作按钮组 */
+        .action-group { display: flex; gap: 4px; justify-content: flex-end; }
         
-        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #064e3b; color: white; padding: 10px 20px; border-radius: 30px; font-size: 13px; font-weight: 500; display: none; z-index: 2000; }
+        /* 弹窗优化 */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
+        .modal-box { background: white; padding: 30px; border-radius: 16px; width: 450px; max-width: 90%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes popIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         
-        .suspended-row { color: #94a3b8; background: #f8fafc; text-decoration: line-through; }
+        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #064e3b; color: white; padding: 10px 24px; border-radius: 50px; font-size: 14px; font-weight: 500; display: none; z-index: 2000; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        
+        /* 响应式调整 */
+        @media (max-width: 1000px) {
+            .layout { flex-direction: column; overflow-y: auto; }
+            .left-panel { min-height: 500px; flex: none; }
+            .right-panel { width: 100%; border-left: none; border-top: 1px solid var(--border); flex: none; min-height: 600px; }
+        }
     </style>
 </head>
 <body>
@@ -88,7 +129,7 @@
 </div>
 
 <div class="top-bar">
-    <div class="app-title">⚙️ 值班管理控制台 <span style="font-size:11px; background:#e0e7ff; padding:2px 6px; border-radius:4px;">V29 Ops</span></div>
+    <div class="app-title">⚙️ 值班管理控制台 <span style="font-size:11px; background:#e0e7ff; padding:2px 6px; border-radius:4px; margin-left:10px;">V29 Pro UI</span></div>
     <button class="danger" onclick="location.reload()">🔒 安全退出</button>
 </div>
 
@@ -97,13 +138,13 @@
         <div class="cal-controls">
             <div class="date-ctrl">
                 <button onclick="app.changeMonth(-1)">◀</button>
-                <input type="month" id="calMonthPicker" style="width:auto; margin:0; font-weight:bold;" onchange="app.onMonthPick()">
+                <input type="month" id="calMonthPicker" style="width:auto; margin:0; font-weight:bold; cursor:pointer;" onchange="app.onMonthPick()">
                 <button onclick="app.changeMonth(1)">▶</button>
             </div>
             <div class="action-btns">
-                <button class="danger" onclick="app.deleteCurrentMonth()">🗑️ 删除本月</button>
-                <button class="primary" onclick="app.downloadMonth()">📥 下载本月</button>
-                <button class="success" onclick="app.publishSchedule()">☁️ 发布排班</button>
+                <button class="danger" onclick="app.deleteCurrentMonth()">🗑️ 删除</button>
+                <button class="primary" onclick="app.downloadMonth()">📥 下载</button>
+                <button class="success" onclick="app.publishSchedule()">☁️ 发布</button>
             </div>
         </div>
         <div id="calGrid" class="cal-grid"></div>
@@ -143,19 +184,19 @@
             </div>
 
             <div id="t-person" class="tab-pane">
-                <div style="display:flex; gap:5px; margin-bottom:10px;">
+                <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center;">
                     <select id="manageType" onchange="app.renderPersonList()" style="margin:0; flex:1;">
                         <option value="leader">带班领导</option>
                         <option value="female">女值班员</option>
                         <option value="male">男值班员</option>
                     </select>
-                    <button class="primary" onclick="app.editPerson()">+ 添加</button>
+                    <button class="primary" onclick="app.editPerson()">+ 添加人员</button>
                 </div>
                 <div id="personList"></div>
-                <div style="margin-top:10px; display:flex; gap:5px;">
+                <div style="margin-top:15px; display:flex; gap:5px;">
                     <button onclick="app.downloadTemplate('person')">⬇ 模板</button>
                     <input type="file" id="upPer" hidden onchange="app.importExcel(this,'person')">
-                    <button onclick="document.getElementById('upPer').click()">⬆ 导入</button>
+                    <button onclick="document.getElementById('upPer').click()">⬆ 导入 Excel</button>
                 </div>
             </div>
 
@@ -437,23 +478,42 @@ window.app = {
         this.save(); this.renderCal(); document.getElementById('swapModal').style.display='none';
     },
 
-    // --- Person & Sort ---
+    // --- Person & Sort (优化版 UI) ---
     renderPersonList() {
-        const t=document.getElementById('manageType').value, l=this.data.personnel[t];
-        let h=`<div class="table-container"><table><thead><tr><th>姓名</th>${t==='leader'?'<th>职务</th><th>座机</th>':''}<th>手机</th><th>操作</th></tr></thead><tbody>`;
-        l.forEach((p,i)=>{
-            h+=`<tr class="${p.isSuspended?'suspended-row':''}">
-                <td>${p.name}${p.isSuspended?' (停)':''}</td>
-                ${t==='leader'?`<td>${p.job||'-'}</td><td>${p.landline||'-'}</td>`:''}
+        const t = document.getElementById('manageType').value;
+        const l = this.data.personnel[t];
+        
+        // 根据不同类型定义列宽，优化显示
+        let colGroup = `<col style="width:20%">`; // 姓名
+        if(t === 'leader') colGroup += `<col style="width:20%"><col style="width:20%">`; // 职务, 座机
+        colGroup += `<col style="width:20%"><col style="width:20%">`; // 手机, 操作
+        
+        let header = `<thead><tr><th>姓名</th>`;
+        if(t === 'leader') header += `<th>职务</th><th>座机</th>`;
+        header += `<th>手机</th><th style="text-align:right">管理</th></tr></thead>`;
+
+        let body = `<tbody>`;
+        l.forEach((p, i) => {
+            const isSus = p.isSuspended;
+            // 按钮图标化，节省空间
+            const btns = `
+                <div class="action-group">
+                    <button class="icon-btn" title="上移" onclick="app.movePerson('${t}',${i},-1)">▲</button>
+                    <button class="icon-btn" title="下移" onclick="app.movePerson('${t}',${i},1)">▼</button>
+                    <button class="icon-btn" title="编辑" onclick="app.editPerson(${i})">✎</button> 
+                    <button class="icon-btn" style="color:#ef4444" title="删除" onclick="app.delPerson('${t}',${i})">×</button>
+                </div>`;
+            
+            body += `<tr class="${isSus ? 'suspended-row' : ''}">
+                <td style="font-weight:600">${p.name}${isSus ? ' <small>(停)</small>' : ''}</td>
+                ${t === 'leader' ? `<td>${p.job||'-'}</td><td>${p.landline||'-'}</td>` : ''}
                 <td>${p.phone||'-'}</td>
-                <td>
-                    <button class="sort-btn" onclick="app.movePerson('${t}',${i},-1)">↑</button>
-                    <button class="sort-btn" onclick="app.movePerson('${t}',${i},1)">↓</button>
-                    <button onclick="app.editPerson(${i})">✎</button> 
-                    <button class="danger" style="padding:4px 8px;" onclick="app.delPerson('${t}',${i})">×</button>
-                </td></tr>`;
+                <td>${btns}</td>
+            </tr>`;
         });
-        document.getElementById('personList').innerHTML=h+`</tbody></table></div>`;
+        body += `</tbody>`;
+
+        document.getElementById('personList').innerHTML = `<div class="table-container"><table>${colGroup}${header}${body}</table></div>`;
         this.fillSelects();
     },
     movePerson(t, i, d) {

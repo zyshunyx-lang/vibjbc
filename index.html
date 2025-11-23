@@ -278,13 +278,33 @@ window.app = {
         }
     },
 
-    // 生成并下载 ICS 文件
+      // 生成并下载 ICS 文件 (优化版：只导未来 + 上午9点提醒)
     addToCalendar() {
-        if(this.currentSearchResults.length === 0) return;
+        // 1. 过滤：只保留今天及未来的排班
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // 设置为今天凌晨 00:00:00，确保包含今天
+
+        const futureEvents = this.currentSearchResults.filter(item => {
+            // item.date 格式为 "YYYY-MM-DD"
+            // 直接转换 new Date("YYYY-MM-DD") 在某些时区会解析为 UTC 0点
+            // 这里为了稳健，直接解析字符串年月日
+            const [y, m, d] = item.date.split('-').map(Number);
+            const itemDate = new Date(y, m - 1, d); // 构造本地时间对象
+            return itemDate >= today;
+        });
+
+        if (futureEvents.length === 0) {
+            alert("没有找到今天或未来的值班安排，无需导出。");
+            return;
+        }
         
+        if (!confirm(`共找到 ${this.currentSearchResults.length} 条记录，其中 ${futureEvents.length} 条为未来/今天安排。\n\n是否仅将这 ${futureEvents.length} 条导入日历？`)) {
+            return;
+        }
+
         let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//DutySystem//CN\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\n";
         
-        this.currentSearchResults.forEach(item => {
+        futureEvents.forEach(item => {
             const dateStr = item.date.replace(/-/g, ''); // YYYYMMDD
             // 构造全天事件，第二天结束
             const nextDay = new Date(item.date);
@@ -292,20 +312,22 @@ window.app = {
             const nextStr = nextDay.toISOString().slice(0,10).replace(/-/g, '');
 
             const s = item.data;
-            const summary = `值班提醒`;
-            const desc = `带班:${s.leader} 女值:${s.female} 男值:${s.male} ${s.remark?'备注:'+s.remark:''}`;
+            const summary = `值班: ${s.leader} ${s.female} ${s.male}`; // 稍微精简标题，手机查看更直观
+            const desc = `带班:${s.leader}\\n女值:${s.female}\\n男值:${s.male}${s.remark ? '\\n备注:' + s.remark : ''}`;
 
             icsContent += "BEGIN:VEVENT\n";
             icsContent += `DTSTART;VALUE=DATE:${dateStr}\n`;
-            icsContent += `DTEND;VALUE=DATE:${nextStr}\n`; // 全天事件需跨越到下一天0点
+            icsContent += `DTEND;VALUE=DATE:${nextStr}\n`; 
             icsContent += `SUMMARY:${summary}\n`;
             icsContent += `DESCRIPTION:${desc}\n`;
             
-            // 添加提醒 (VALARM): 提前1天 (P1D)
+            // --- 提醒设置优化 ---
+            // 目标：前一天上午 9:00 提醒
+            // 全天事件起始于 00:00，减去 15 小时 = 前一天 09:00
             icsContent += "BEGIN:VALARM\n";
-            icsContent += "TRIGGER:-P1D\n"; // 提前1天
+            icsContent += "TRIGGER:-PT15H\n"; 
             icsContent += "ACTION:DISPLAY\n";
-            icsContent += "DESCRIPTION:明天有值班安排\n";
+            icsContent += "DESCRIPTION:明天有值班安排，请注意备勤\n";
             icsContent += "END:VALARM\n";
             
             icsContent += "END:VEVENT\n";
@@ -316,19 +338,11 @@ window.app = {
         const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = "值班安排.ics";
+        link.download = `值班安排(未来)_${futureEvents.length}条.ics`; // 文件名带上条数
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     },
-
-    changeMonth(d) {
-        let nm = this.m + d; let ny = this.y;
-        if(nm>12){nm=1;ny++} if(nm<1){nm=12;ny--}
-        this.y=ny; this.m=nm; this.render();
-    },
-    goToday() { this.y=new Date().getFullYear(); this.m=new Date().getMonth()+1; this.render(); }
-};
 </script>
 </body>
 </html>

@@ -278,16 +278,13 @@ window.app = {
         }
     },
 
-      // 生成并下载 ICS 文件 (优化版：只导未来 + 上午9点提醒)
+    // 生成并下载 ICS 文件 (优化版：只导未来 + 前一天上午9点提醒)
     addToCalendar() {
         // 1. 过滤：只保留今天及未来的排班
         const today = new Date();
         today.setHours(0, 0, 0, 0); // 设置为今天凌晨 00:00:00，确保包含今天
 
         const futureEvents = this.currentSearchResults.filter(item => {
-            // item.date 格式为 "YYYY-MM-DD"
-            // 直接转换 new Date("YYYY-MM-DD") 在某些时区会解析为 UTC 0点
-            // 这里为了稳健，直接解析字符串年月日
             const [y, m, d] = item.date.split('-').map(Number);
             const itemDate = new Date(y, m - 1, d); // 构造本地时间对象
             return itemDate >= today;
@@ -312,7 +309,7 @@ window.app = {
             const nextStr = nextDay.toISOString().slice(0,10).replace(/-/g, '');
 
             const s = item.data;
-            const summary = `值班: ${s.leader} ${s.female} ${s.male}`; // 稍微精简标题，手机查看更直观
+            const summary = `值班: ${s.leader} ${s.female} ${s.male}`; 
             const desc = `带班:${s.leader}\\n女值:${s.female}\\n男值:${s.male}${s.remark ? '\\n备注:' + s.remark : ''}`;
 
             icsContent += "BEGIN:VEVENT\n";
@@ -321,9 +318,8 @@ window.app = {
             icsContent += `SUMMARY:${summary}\n`;
             icsContent += `DESCRIPTION:${desc}\n`;
             
-            // --- 提醒设置优化 ---
-            // 目标：前一天上午 9:00 提醒
-            // 全天事件起始于 00:00，减去 15 小时 = 前一天 09:00
+            // --- 提醒设置优化: 前一天上午 9:00 ---
+            // 全天事件从0点开始，-PT15H 代表提前15小时，即前一天 9:00
             icsContent += "BEGIN:VALARM\n";
             icsContent += "TRIGGER:-PT15H\n"; 
             icsContent += "ACTION:DISPLAY\n";
@@ -338,11 +334,19 @@ window.app = {
         const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = `值班安排(未来)_${futureEvents.length}条.ics`; // 文件名带上条数
+        link.download = `值班安排(未来)_${futureEvents.length}条.ics`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     },
+
+    changeMonth(d) {
+        let nm = this.m + d; let ny = this.y;
+        if(nm>12){nm=1;ny++} if(nm<1){nm=12;ny--}
+        this.y=ny; this.m=nm; this.render();
+    },
+    goToday() { this.y=new Date().getFullYear(); this.m=new Date().getMonth()+1; this.render(); }
+};
 </script>
 </body>
 </html>

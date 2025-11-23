@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>后台管理系统 (V26 Ops)</title>
+    <title>后台管理系统 (V27 Logic)</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <style>
         :root { 
@@ -33,7 +33,6 @@
         
         input, select, textarea { padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; box-sizing: border-box; margin-bottom: 8px; font-size: 13px; }
 
-        /* 顶部控制栏优化 */
         .cal-controls { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; background: white; padding: 10px; border-radius: 8px; border: 1px solid var(--border); gap: 10px; }
         .date-ctrl { display: flex; gap: 5px; align-items: center; }
         .action-btns { display: flex; gap: 8px; }
@@ -68,7 +67,6 @@
         .modal-box { background: white; padding: 20px; border-radius: 12px; width: 400px; max-width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
         
         #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #064e3b; color: white; padding: 10px 20px; border-radius: 30px; font-size: 13px; font-weight: 500; display: none; z-index: 2000; }
-        
         .suspended-row { color: #94a3b8; background: #f8fafc; text-decoration: line-through; }
     </style>
 </head>
@@ -85,7 +83,7 @@
 </div>
 
 <div class="top-bar">
-    <div class="app-title">⚙️ 值班管理控制台 <span style="font-size:11px; background:#e0e7ff; padding:2px 6px; border-radius:4px;">V26 Ops</span></div>
+    <div class="app-title">⚙️ 值班管理控制台 <span style="font-size:11px; background:#e0e7ff; padding:2px 6px; border-radius:4px;">V27 Ops</span></div>
     <button class="danger" onclick="location.reload()">🔒 安全退出</button>
 </div>
 
@@ -125,7 +123,6 @@
                         <button onclick="app.clearNotice()">清空</button>
                     </div>
                 </div>
-
                 <h4 style="margin-top:0;">⚡ 自动排班</h4>
                 <label>带班 (工作日) 起始</label><select id="slW"></select>
                 <label>带班 (假日) 起始</label><select id="slH"></select>
@@ -172,7 +169,6 @@
                 <input id="newAdmin" placeholder="新·管理密码">
                 <input id="newView" placeholder="新·查看密码">
                 <button class="primary" style="width:100%; margin-bottom:20px;" onclick="app.changePass()">修改密码</button>
-                
                 <h4>💾 数据维护</h4>
                 <button class="success" style="width:100%; margin-bottom:5px;" onclick="app.exportData()">⬇ 备份所有数据</button>
                 <div style="border-top:1px dashed #ccc; margin:15px 0; padding-top:15px;">
@@ -199,8 +195,9 @@
     <div class="modal-box">
         <h3 style="margin-top:0;" id="swapTitle">换班调整</h3>
         <input type="hidden" id="swapDate">
+        <input type="hidden" id="swapIsHoliday">
         <div style="background:#fff7ed; padding:10px; border-radius:6px; margin-bottom:10px;">
-            <div style="font-size:11px; color:#c2410c; font-weight:bold; margin-bottom:5px;">🚑 备勤推荐 (该月排班末尾的下4位)</div>
+            <div style="font-size:11px; color:#c2410c; font-weight:bold; margin-bottom:5px;">🚑 备勤推荐 (点击应用)</div>
             <div id="standbyPool" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:5px;"></div>
         </div>
         <label>带班</label><select id="swL"></select>
@@ -242,6 +239,7 @@ window.app = {
     token: null,
     data: { personnel: {leader:[], female:[], male:[]}, holidays:{}, schedules:{}, logs:[], notice:"" },
     vy: new Date().getFullYear(), vm: new Date().getMonth()+1,
+    currentOrigin: {}, // 暂存换班前数据
 
     // --- Init ---
     init() { document.getElementById('hYear').value = this.vy; document.getElementById('genMonth').value = new Date().toISOString().slice(0,7); },
@@ -268,62 +266,40 @@ window.app = {
         if(!this.data.logs) this.data.logs=[];
     },
 
-    // --- Core ---
+    // --- Core & Actions ---
     async save() { try { await fetch(this.api, {method:'POST', body:JSON.stringify({action:'save', password:this.token, newData:this.data})}); } catch(e){} },
     toast(m) { const t=document.getElementById('toast'); t.innerText=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2000); },
     log(act, det) { this.data.logs.unshift({t:new Date().toLocaleString(), a:act, d:det}); if(this.data.logs.length>200)this.data.logs.pop(); this.save(); this.renderLogs(); },
     
-    // --- Actions ---
-    async publishSchedule() { await this.save(); this.toast("✅ 排班已发布到前台"); },
+    async publishSchedule() { await this.save(); this.toast("✅ 排班已发布"); },
     async saveNotice() { this.data.notice = document.getElementById('noticeInput').value; await this.save(); this.toast("✅ 公告已更新"); },
     clearNotice() { document.getElementById('noticeInput').value=""; this.saveNotice(); },
 
-    // --- Delete Month ---
+    // --- Month Operations ---
     deleteCurrentMonth() {
-        if(!confirm(`确定要彻底删除 [${this.vy}年${this.vm}月] 的所有排班数据吗？`)) return;
+        if(!confirm(`⚠️ 确定要彻底删除 [${this.vy}年${this.vm}月] 的所有数据吗？`)) return;
         const prefix = `${this.vy}-${String(this.vm).padStart(2,'0')}`;
         let count = 0;
-        Object.keys(this.data.schedules).forEach(k => {
-            if(k.startsWith(prefix)) { delete this.data.schedules[k]; count++; }
-        });
+        Object.keys(this.data.schedules).forEach(k => { if(k.startsWith(prefix)){ delete this.data.schedules[k]; count++; } });
         this.save(); this.renderCal(); this.log('删除月度', `${prefix} (${count}条)`); this.toast(`已删除 ${count} 条记录`);
     },
-
-    // --- Download Month ---
     downloadMonth() {
         const mKey = `${this.vy}-${String(this.vm).padStart(2,'0')}`;
-        const s = this.data.schedules;
-        const pl = this.data.personnel.leader;
-        
-        // 查找领导信息辅助函数
-        const findL = (name) => pl.find(p => p.name === name) || {};
-
+        const s = this.data.schedules, pl = this.data.personnel.leader;
+        const findL = (n) => pl.find(p => p.name === n) || {};
         const rows = [];
-        // 遍历该月每一天 (1-31)
         const days = new Date(this.vy, this.vm, 0).getDate();
         for(let d=1; d<=days; d++) {
             const ds = `${mKey}-${String(d).padStart(2,'0')}`;
             const val = s[ds];
             if(val) {
                 const lInfo = findL(val.leader);
-                rows.push({
-                    "日期": ds,
-                    "带班领导": val.leader,
-                    "职务": lInfo.job || '',
-                    "座机": lInfo.landline || '',
-                    "手机": lInfo.phone || '',
-                    "女值班员": val.female,
-                    "男值班员": val.male,
-                    "备注": val.remark
-                });
+                rows.push({ "日期": ds, "带班领导": val.leader, "职务": lInfo.job||'', "座机": lInfo.landline||'', "手机": lInfo.phone||'', "女值班员": val.female, "男值班员": val.male, "备注": val.remark });
             }
         }
-        
-        if(rows.length === 0) return alert("该月无排班数据");
-        
+        if(!rows.length) return alert("该月无数据");
         const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.json_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, "值班表");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), "值班表");
         XLSX.writeFile(wb, `值班表_${mKey}.xlsx`);
     },
 
@@ -347,65 +323,82 @@ window.app = {
         }
     },
 
-    // --- Swap & Smart Standby ---
+    // --- Swap & Smart Standby (New Logic) ---
     openSwap(ds, isH) {
         document.getElementById('swapModal').style.display='flex';
         document.getElementById('swapTitle').innerText=`调整 ${ds}`; document.getElementById('swapDate').value=ds;
-        const s=this.data.schedules[ds]||{leader:'',female:'',male:'',remark:''};
-        this.currentOrigin = {...s}; // 暂存原始数据用于比对
+        document.getElementById('swapIsHoliday').value = isH;
+        const s = this.data.schedules[ds] || {leader:'', female:'', male:'', remark:''};
+        this.currentOrigin = {...s};
 
-        const fill=(id,t,v)=>document.getElementById(id).innerHTML=`<option value="">(空)</option>`+this.data.personnel[t].filter(p=>!p.isSuspended).map(p=>`<option value="${p.name}" ${p.name===v?'selected':''}>${p.name}</option>`).join('');
+        // 兼容离职人员显示
+        const fill = (id, t, v) => {
+            const list = this.data.personnel[t].filter(p => !p.isSuspended);
+            let html = `<option value="">(空)</option>`;
+            if(v && !list.find(p=>p.name===v)) html += `<option value="${v}" selected>${v} (离职/历史)</option>`;
+            html += list.map(p => `<option value="${p.name}" ${p.name===v?'selected':''}>${p.name}</option>`).join('');
+            document.getElementById(id).innerHTML = html;
+        };
         fill('swL','leader',s.leader); fill('swF','female',s.female); fill('swM','male',s.male);
-        document.getElementById('swR').value=s.remark;
+        document.getElementById('swR').value = s.remark;
 
-        // 智能备勤：取本月最后一个值班人之后的4个人
-        this.renderSmartStandby(this.vy, this.vm);
+        // 计算备勤 (区分假日/平日带班)
+        this.renderSmartStandby(this.vy, this.vm, isH);
     },
 
-    // 备勤算法
-    renderSmartStandby(y, m) {
+    renderSmartStandby(y, m, isTargetHoliday) {
         const pool = document.getElementById('standbyPool'); pool.innerHTML='';
         const prefix = `${y}-${String(m).padStart(2,'0')}`;
-        
-        // 1. 找到本月所有排班日期
         const dates = Object.keys(this.data.schedules).filter(k => k.startsWith(prefix)).sort();
+        const hlKey = String(y); const hList = this.data.holidays[hlKey] || [];
+
+        // 寻找各类别的最后一人
+        let lastL_W = null, lastL_H = null, lastF = null, lastM = null;
         
-        // 2. 找到本月最后一次排班的人
-        let lastL=null, lastF=null, lastM=null;
-        
-        if(dates.length > 0) {
-            const lastData = this.data.schedules[dates[dates.length-1]];
-            lastL = lastData.leader; lastF = lastData.female; lastM = lastData.male;
-        }
+        // 遍历本月已排班，找到最后一个
+        dates.forEach(d => {
+            const s = this.data.schedules[d];
+            const isH = hList.includes(d);
+            if(isH) lastL_H = s.leader; else lastL_W = s.leader;
+            lastF = s.female; lastM = s.male;
+        });
+
+        // 根据当前弹窗是假日还是平日，决定使用哪个Leader队列
+        const targetLastLeader = isTargetHoliday ? lastL_H : lastL_W;
 
         const getNext4 = (type, lastVal) => {
-            const list = this.data.personnel[type].filter(p => !p.isSuspended); // 排除悬停
-            if(list.length === 0) return [];
+            const list = this.data.personnel[type].filter(p => !p.isSuspended);
+            if(!list.length) return [];
             let startIdx = 0;
             if(lastVal) {
                 const idx = list.findIndex(p => p.name === lastVal);
                 if(idx !== -1) startIdx = (idx + 1) % list.length;
             }
-            // 取接下来4人
-            const res = [];
-            for(let i=0; i<4; i++) res.push(list[(startIdx + i) % list.length]);
+            const res = []; for(let i=0; i<4; i++) res.push(list[(startIdx + i) % list.length]);
             return res;
         };
 
-        const listL = getNext4('leader', lastL);
-        const listF = getNext4('female', lastF);
-        const listM = getNext4('male', lastM);
+        const lList = getNext4('leader', targetLastLeader);
+        const fList = getNext4('female', lastF);
+        const mList = getNext4('male', lastM);
 
-        const addB=(p,t,pf)=>{
+        const addB=(p, t, pf)=>{
             const b=document.createElement('button'); b.innerText=pf+p.name; b.className='success'; b.style.padding='4px'; b.style.fontSize='11px';
             b.onclick=()=>{ 
-                if(t==='l')document.getElementById('swL').value=p.name; if(t==='f')document.getElementById('swF').value=p.name; if(t==='m')document.getElementById('swM').value=p.name; 
-                let r=document.getElementById('swR'); if(!r.value.includes('【备】')) r.value+=(r.value?' ':'')+'【备】'+p.name;
+                if(t==='l')document.getElementById('swL').value=p.name; 
+                if(t==='f')document.getElementById('swF').value=p.name; 
+                if(t==='m')document.getElementById('swM').value=p.name;
+                // 自动生成备勤备注
+                const oldName = t==='l'?this.currentOrigin.leader : (t==='f'?this.currentOrigin.female:this.currentOrigin.male);
+                if(oldName && oldName !== p.name) {
+                    const tag = `【备】${oldName}→${p.name}`;
+                    let r = document.getElementById('swR').value;
+                    if(!r.includes(tag)) r = r ? (r+' '+tag) : tag;
+                    document.getElementById('swR').value = r;
+                }
             }; pool.appendChild(b);
         };
-        listL.forEach(p=>addB(p,'l','带:'));
-        listF.forEach(p=>addB(p,'f','女:'));
-        listM.forEach(p=>addB(p,'m','男:'));
+        lList.forEach(p=>addB(p,'l','带:')); fList.forEach(p=>addB(p,'f','女:')); mList.forEach(p=>addB(p,'m','男:'));
     },
 
     saveSwap() {
@@ -414,15 +407,20 @@ window.app = {
         let r=document.getElementById('swR').value;
         const old=this.currentOrigin;
         
-        // 自动生成换班备注 (只显示符号文字)
+        // 自动生成换班备注 (如果不包含【备】，则视为【换】)
         const changes=[];
-        if(old.leader && old.leader!==nL) changes.push(`${old.leader}→${nL}`);
-        if(old.female && old.female!==nF) changes.push(`${old.female}→${nF}`);
-        if(old.male && old.male!==nM) changes.push(`${old.male}→${nM}`);
+        const check = (oldV, newV) => {
+            if(oldV && oldV !== newV) {
+                // 检查备注里是否已经有这个变化的记载(可能是【备】)
+                const pattern = `${oldV}→${newV}`;
+                if(!r.includes(pattern)) changes.push(`${oldV}→${newV}`);
+            }
+        };
+        check(old.leader, nL); check(old.female, nF); check(old.male, nM);
         
         if(changes.length>0) {
             const tag = `【换】${changes.join(' ')}`;
-            if(!r.includes(tag)) r = r ? (r+' '+tag) : tag;
+            r = r ? (r+' '+tag) : tag;
         }
 
         this.data.schedules[ds]={leader:nL, female:nF, male:nM, remark:r};

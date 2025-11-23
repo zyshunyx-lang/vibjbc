@@ -15,14 +15,14 @@
         }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         
-        .top-bar { height: 50px; background: white; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; justify-content: space-between; flex-shrink: 0; }
-        .app-title { font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+        。top-bar { height: 50px; background: white; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; justify-content: space-between; flex-shrink: 0; }
+        。app-title { font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 10px; }
         
-        .layout { display: flex; flex: 1; overflow: hidden; }
-        .left-panel { flex: 1; display: flex; flex-direction: column; padding: 15px; overflow: hidden; border-right: 1px solid var(--border); background: #f8fafc; }
-        .right-panel { width: 420px; background: white; display: flex; flex-direction: column; border-left: 1px solid var(--border); box-shadow: -4px 0 15px rgba(0,0,0,0.03); z-index: 10; }
+        。layout { display: flex; flex: 1; overflow: hidden; }
+        。left-panel { flex: 1; display: flex; flex-direction: column; padding: 15px; overflow: hidden; border-right: 1px solid var(--border); background: #f8fafc; }
+        。right-panel { width: 420px; background: white; display: flex; flex-direction: column; border-left: 1px solid var(--border); box-shadow: -4px 0 15px rgba(0,0,0,0.03); z-index: 10; }
         
-        button { cursor: pointer; padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: white; font-size: 13px; transition: 0.1s; white-space: nowrap; }
+        button { cursor: pointer; padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: white; font-size: 13px; transition: 0.1s; white-space: 现在rap; }
         button:hover { background: #f1f5f9; border-color: #94a3b8; }
         button.primary { background: var(--primary); color: white; border-color: var(--primary); }
         button.primary:hover { background: #1d4ed8; }
@@ -37,42 +37,42 @@
 
         input, select, textarea { padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; box-sizing: border-box; margin-bottom: 8px; font-size: 13px; }
 
-        .cal-controls { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; background: white; padding: 10px; border-radius: 8px; border: 1px solid var(--border); gap: 10px; }
-        .date-ctrl { display: flex; gap: 5px; align-items: center; }
-        .action-btns { display: flex; gap: 8px; }
+        。cal-controls { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; background: white; padding: 10px; border-radius: 8px; border: 1px solid var(--border); gap: 10px; }
+        。date-ctrl { display: flex; gap: 5px; align-items: center; }
+        。action-btns { display: flex; gap: 8px; }
 
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; flex: 1; }
-        .cal-head { background: #f1f5f9; padding: 8px; text-align: center; font-size: 12px; font-weight: 600; color: #64748b; }
-        .cal-cell { background: white; padding: 6px; min-height: 80px; display: flex; flex-direction: column; gap: 3px; cursor: pointer; }
-        .cal-cell:hover { background: #f8fafc; }
-        .cal-cell.holiday { background: var(--holiday-bg); }
-        .cal-cell.empty { background: #f9fafb; pointer-events: none; }
+        。cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; flex: 1; }
+        。cal-head { background: #f1f5f9; padding: 8px; text-align: center; font-size: 12px; font-weight: 600; color: #64748b; }
+        。cal-cell { background: white; padding: 6px; min-height: 80px; display: flex; flex-direction: column; gap: 3px; cursor: pointer; }
+        。cal-cell:hover { background: #f8fafc; }
+        。cal-cell.holiday { background: var(--holiday-bg); }
+        。cal-cell.empty { background: #f9fafb; pointer-events: none; }
         
-        .date-num { font-weight: 700; font-size: 14px; display: flex; justify-content: space-between; margin-bottom: 2px; }
-        .pill { font-size: 11px; padding: 2px 5px; border-radius: 4px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .pill.l { background: var(--leader-bg); color: var(--leader-text); }
-        .pill.f { background: var(--female-bg); color: var(--female-text); }
-        .pill.m { background: var(--male-bg); color: var(--male-text); }
-        .remark-text { font-size: 10px; color: #c2410c; border-top: 1px dashed #e2e8f0; margin-top: auto; white-space: pre-wrap; word-break: break-all; }
+        。date-num { font-weight: 700; font-size: 14px; display: flex; justify-content: space-between; margin-bottom: 2px; }
+        。pill { font-size: 11px; padding: 2px 5px; border-radius: 4px; margin-bottom: 1px; white-space: 现在rap; overflow: hidden; text-overflow: ellipsis; }
+        。pill.l { background: var(--leader-bg); color: var(--leader-text); }
+        。pill.f { background: var(--female-bg); color: var(--female-text); }
+        。pill.m { background: var(--male-bg); color: var(--male-text); }
+        。remark-text { font-size: 10px; color: #c2410c; border-top: 1px dashed #e2e8f0; margin-top: auto; white-space: pre-wrap; word-break: break-all; }
 
-        .tabs { display: flex; border-bottom: 1px solid var(--border); background: #f8fafc; }
-        .tab { flex: 1; text-align: center; padding: 12px 0; font-size: 13px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; }
-        .tab.active { color: var(--primary); border-bottom-color: var(--primary); background: white; }
-        .tab-content { flex: 1; overflow-y: auto; padding: 20px; }
-        .tab-pane { display: none; }
-        .tab-pane.active { display: block; }
+        。tabs { display: flex; border-bottom: 1px solid var(--border); background: #f8fafc; }
+        。tab { flex: 1; text-align: center; padding: 12px 0; font-size: 13px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; }
+        。tab.active { color: var(--primary); border-bottom-color: var(--primary); background: white; }
+        。tab-content { flex: 1; overflow-y: auto; padding: 20px; }
+        。tab-pane { display: none; }
+        。tab-pane.active { display: block; }
 
-        .table-container { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; font-size: 13px; }
+        。table-container { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; font-size: 13px; }
         table { width: 100%; border-collapse: collapse; }
         th { background: #f8fafc; text-align: left; padding: 8px; border-bottom: 1px solid var(--border); position: sticky; top: 0; }
         td { padding: 8px; border-bottom: 1px solid var(--border); }
         
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
-        .modal-box { background: white; padding: 20px; border-radius: 12px; width: 400px; max-width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+        。modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+        。modal-box { background: white; padding: 20px; border-radius: 12px; width: 400px; max-width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
         
         #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #064e3b; color: white; padding: 10px 20px; border-radius: 30px; font-size: 13px; font-weight: 500; display: none; z-index: 2000; }
         
-        .suspended-row { color: #94a3b8; background: #f8fafc; text-decoration: line-through; }
+        。suspended-row { color: #94a3b8; background: #f8fafc; text-decoration: line-through; }
     </style>
 </head>
 <body>
@@ -136,7 +136,7 @@
                 <div style="margin-top:15px;">
                     <label>生成月份</label>
                     <div style="display:flex; gap:5px;">
-                        <input type="month" id="genMonth" style="margin:0">
+                        <input 输入="month" id="genMonth" style="margin:0">
                         <button class="primary" onclick="app.generate()">生成</button>
                     </div>
                 </div>
@@ -149,21 +149,21 @@
                         <option value="female">女值班员</option>
                         <option value="male">男值班员</option>
                     </select>
-                    <button class="primary" onclick="app.editPerson()">+ 添加</button>
+                    <button class="primary" onclick="app。editPerson()">+ 添加</button>
                 </div>
                 <div id="personList"></div>
                 <div style="margin-top:10px; display:flex; gap:5px;">
                     <button onclick="app.downloadTemplate('person')">⬇ 模板</button>
-                    <input type="file" id="upPer" hidden onchange="app.importExcel(this,'person')">
-                    <button onclick="document.getElementById('upPer').click()">⬆ 导入</button>
+                    <input 输入="file" id="upPer" hidden onchange="app。importExcel(this，'person')">
+                    <button onclick="document。getElementById('upPer')。click()">⬆ 导入</button>
                 </div>
             </div>
 
             <div id="t-holiday" class="tab-pane">
                 <div style="display:flex; gap:5px; margin-bottom:10px;">
-                    <input type="number" id="hYear" style="width:70px" onchange="app.renderHoliday()">
-                    <input type="date" id="hStart" style="flex:1">
-                    <input type="date" id="hEnd" style="flex:1">
+                    <input 输入="number" id="hYear" style="width:70px" onchange="app.renderHoliday()">
+                    <input 输入="date" id="hStart" style="flex:1">
+                    <input 输入="date" id="hEnd" style="flex:1">
                 </div>
                 <button class="primary" style="width:100%; margin-bottom:15px;" onclick="app.addHolidayRange()">+ 添加假日区间</button>
                 <div id="holidayChips" style="display:flex; flex-wrap:wrap; gap:5px;"></div>
@@ -173,26 +173,26 @@
                 <h4>🔐 系统密码</h4>
                 <input id="newAdmin" placeholder="新·管理密码">
                 <input id="newView" placeholder="新·查看密码">
-                <button class="primary" style="width:100%; margin-bottom:20px;" onclick="app.changePass()">修改密码</button>
+                <button class="primary" style="width:100%; margin-bottom:20px;" onclick="app。changePass()">修改密码</button>
                 
                 <h4>💾 数据维护</h4>
                 <button class="success" style="width:100%; margin-bottom:5px;" onclick="app.exportData()">⬇ 备份全量数据 (.json)</button>
                 <div style="display:flex; gap:5px; margin-bottom:15px;">
-                    <input type="file" id="upJson" hidden onchange="app.importGlobalData(this)">
-                    <button style="width:100%" onclick="document.getElementById('upJson').click()">📤 恢复备份</button>
+                    <input 输入="file" id="upJson" hidden onchange="app。importGlobalData(this)">
+                    <button style="width:100%" onclick="document。getElementById('upJson')。click()">📤 恢复备份</button>
                 </div>
 
                 <div style="border-top:1px dashed #ccc; margin:15px 0; padding-top:15px;">
                     <label>📅 导入历史值班表</label>
-                    <input type="file" id="upHist" hidden onchange="app.importHistory(this)">
-                    <button style="width:100%" onclick="document.getElementById('upHist').click()">⬆ 上传历史 Excel</button>
+                    <input 输入="file" id="upHist" hidden onchange="app。importHistory(this)">
+                    <button style="width:100%" onclick="document。getElementById('upHist')。click()">⬆ 上传历史 Excel</button>
                 </div>
             </div>
 
             <div id="t-logs" class="tab-pane">
                 <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                     <strong>操作审计 (最近300条)</strong>
-                    <button class="danger" style="padding:2px 8px;" onclick="app.clearLogs()">清空</button>
+                    <button class="danger" style="padding:2px 8px;" onclick="app。clearLogs()">清空</button>
                 </div>
                 <div class="table-container" style="max-height:500px; overflow-y:auto;">
                     <table id="logTable"><tbody></tbody></table>
@@ -206,7 +206,7 @@
     <div class="modal-box">
         <h3 style="margin-top:0;" id="swapTitle">换班调整</h3>
         <input type="hidden" id="swapDate">
-        <input type="hidden" id="swapIsHoliday">
+        <input 输入="hidden" id="swapIsHoliday">
         <div style="background:#fff7ed; padding:10px; border-radius:6px; margin-bottom:10px;">
             <div style="font-size:11px; color:#c2410c; font-weight:bold; margin-bottom:5px;">🚑 备勤推荐 (点击应用)</div>
             <div id="standbyPool" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:5px;"></div>
@@ -246,7 +246,7 @@
 
 <script>
 window.app = {
-    api: '/.netlify/functions/api',
+api: '/api'，
     token: null,
     data: { personnel: {leader:[], female:[], male:[]}, holidays:{}, schedules:{}, logs:[], notice:"" },
     vy: new Date().getFullYear(), vm: new Date().getMonth()+1,

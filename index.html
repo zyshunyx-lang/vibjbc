@@ -15,31 +15,27 @@
             --notice-bg: #fff7ed; --notice-text: #c2410c;
             --today-ring: #f59e0b;
         }
-        /* 基础重置 */
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             margin: 0; background: var(--bg); color: var(--text-main); 
             height: 100vh; display: flex; flex-direction: column; overflow: hidden;
-            /* 关键：适配 iOS 底部小黑条 */
             padding-bottom: env(safe-area-inset-bottom);
         }
 
-        /* === 1. 登录层 (手机适配) === */
+        /* === 1. 登录层 === */
         #loginOverlay { position: fixed; inset: 0; background: rgba(255,255,255,0.98); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.3s; padding: 20px; }
         .login-card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 320px; text-align: center; border: 1px solid var(--border); box-sizing: border-box; }
         .login-btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 15px; font-weight: 600; -webkit-tap-highlight-color: transparent; }
         
-        /* === 2. 顶部导航 (关键：避让摄像头) === */
+        /* === 2. 顶部导航 === */
         .header { 
             background: var(--surface); 
-            /* 关键：使用 env(safe-area-inset-top) 避让刘海，并额外加 10px 间距 */
             padding-top: calc(env(safe-area-inset-top) + 15px);
             padding-bottom: 10px;
             padding-left: 15px; padding-right: 15px;
             border-bottom: 1px solid var(--border); 
             display: flex; justify-content: space-between; align-items: center;
-            flex-shrink: 0;
-            z-index: 50;
+            flex-shrink: 0; z-index: 50;
         }
         .brand { font-size: 18px; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 8px; white-space: nowrap; }
         
@@ -48,24 +44,22 @@
             background: white; border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; 
             cursor: pointer; color: var(--text-main); font-size: 13px; font-weight: 500; 
             display: flex; align-items: center; justify-content: center;
-            -webkit-tap-highlight-color: transparent; /* 移除点击高亮 */
+            -webkit-tap-highlight-color: transparent;
         }
         button.btn:active { background: #f1f5f9; transform: scale(0.98); }
 
-        /* 手机端特定调整 */
         @media (max-width: 480px) {
             .header { flex-direction: column; gap: 10px; align-items: stretch; height: auto; }
             .brand { justify-content: center; font-size: 20px; }
             .controls { justify-content: space-between; }
             button.btn { flex: 1; padding: 8px 0; font-size: 14px; }
-            /* 日期显示器 */
             #dateDisp { width: 100px !important; text-align: center; }
         }
 
         /* === 3. 公告栏 === */
         .ticker-container { background: var(--notice-bg); color: var(--notice-text); height: 36px; display: flex; align-items: center; overflow: hidden; border-bottom: 1px solid #fed7aa; font-size: 13px; font-weight: 600; flex-shrink: 0; }
         .ticker-icon { 
-            width: 80px; flex-shrink: 0; background: var(--notice-bg); z-index: 10; 
+            width: 100px; flex-shrink: 0; background: var(--notice-bg); z-index: 10; 
             border-right: 1px solid #fed7aa; height: 100%; 
             display: flex; align-items: center; justify-content: center;
             box-shadow: 4px 0 8px rgba(0,0,0,0.02);
@@ -73,11 +67,8 @@
         .ticker-content { white-space: nowrap; animation: scroll 25s linear infinite; padding-left: 100%; display: flex; align-items: center; }
         @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 
-        /* === 4. 日历核心 === */
-        .cal-box { 
-            flex: 1; margin: 10px; background: white; border-radius: 12px; border: 1px solid var(--border); 
-            display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02); 
-        }
+        /* === 4. 日历 === */
+        .cal-box { flex: 1; margin: 10px; background: white; border-radius: 12px; border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .cal-head { display: grid; grid-template-columns: repeat(7, 1fr); background: #f8fafc; border-bottom: 1px solid var(--border); }
         .cal-head div { padding: 8px 2px; text-align: center; font-size: 12px; font-weight: 600; color: var(--text-sub); }
         .cal-body { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); overflow-y: auto; gap: 1px; background: var(--border); }
@@ -91,26 +82,13 @@
         .cal-cell.holiday .date-num span { color: #dc2626; }
         .holiday-tag { color: #dc2626; font-size: 10px; transform: scale(0.9); transform-origin: right top; }
 
-        /* 胶囊样式 */
-        .duty-tag { 
-            padding: 2px 4px; border-radius: 4px; font-size: 11px; font-weight: 500; 
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
-            display: flex; align-items: center; justify-content: center;
-        }
+        .duty-tag { padding: 2px 4px; border-radius: 4px; font-size: 11px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center; }
         .tag-l { background: var(--leader-bg); color: var(--leader-text); }
         .tag-f { background: var(--female-bg); color: var(--female-text); }
         .tag-m { background: var(--male-bg); color: var(--male-text); }
         
-        /* 备注样式 (关键：支持换班/备勤显示) */
-        .remark { 
-            font-size: 10px; color: #c2410c; margin-top: auto; padding-top: 2px; 
-            border-top: 1px dashed #f1f5f9; 
-            white-space: pre-wrap; /* 允许换行 */
-            word-break: break-all; /* 允许单词拆分，防止撑开 */
-            line-height: 1.2;
-        }
+        .remark { font-size: 10px; color: #c2410c; margin-top: auto; padding-top: 2px; border-top: 1px dashed #f1f5f9; white-space: pre-wrap; word-break: break-all; line-height: 1.2; }
 
-        /* 手机端进一步压缩日历显示 */
         @media (max-width: 480px) {
             .cal-box { margin: 0; border: none; border-radius: 0; }
             .cal-cell { min-height: 70px; padding: 2px; }
@@ -163,7 +141,7 @@
             <b style="font-size:16px;">人员查询</b><span style="cursor:pointer; padding:5px; font-size:20px;" onclick="document.getElementById('searchModal').style.display='none'">×</span>
         </div>
         <div style="display:flex; gap:10px; margin-bottom:15px;">
-            <input id="sInput" placeholder="输入姓名..." style="flex:1; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:16px;" onkeydown="if(event.key==='Enter') app.search()">
+            <input id="sInput" placeholder="输入姓名 (两字名中间加两空格)" style="flex:1; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px;" onkeydown="if(event.key==='Enter') app.search()">
             <button class="btn" style="background:var(--primary); color:white; border:none; padding:0 20px;" onclick="app.search()">查询</button>
         </div>
         <div id="sResult" style="overflow-y:auto; flex:1; -webkit-overflow-scrolling: touch;"></div>
@@ -218,7 +196,6 @@ window.app = {
                 if(s.leader) html += `<div class="duty-tag tag-l">${s.leader}</div>`;
                 if(s.female) html += `<div class="duty-tag tag-f">${s.female}</div>`;
                 if(s.male) html += `<div class="duty-tag tag-m">${s.male}</div>`;
-                // 关键修正：确保备注显示，并支持换班显示
                 if(s.remark) html += `<div class="remark">${s.remark}</div>`;
             }
             
@@ -241,19 +218,34 @@ window.app = {
     },
 
     openSearch() { document.getElementById('searchModal').style.display = 'flex'; setTimeout(()=>document.getElementById('sInput').focus(), 100); },
+    
     search() {
         const v = document.getElementById('sInput').value.trim();
         const r = document.getElementById('sResult'); r.innerHTML = '';
         if(!v) return;
         
+        const weeks = ['周日','周一','周二','周三','周四','周五','周六'];
         let count = 0;
+        
         Object.keys(this.data.schedules || {}).sort().reverse().forEach(k => {
             const s = this.data.schedules[k];
-            // 模糊匹配
             if(s.leader?.includes(v) || s.female?.includes(v) || s.male?.includes(v)) {
+                // 1. 计算星期
+                const dateObj = new Date(k);
+                const weekStr = weeks[dateObj.getDay()];
+                
+                // 2. 计算假日 (严格依据后台设置)
+                const y = k.split('-')[0];
+                const isHoliday = (this.data.holidays[y] || []).includes(k);
+                const holidayStr = isHoliday ? '<span style="color:#dc2626; font-weight:bold; margin-left:5px;">(休)</span>' : '';
+
                 r.innerHTML += `
                     <div style="padding:12px; border-bottom:1px solid #eee">
-                        <div style="color:var(--primary); font-weight:bold; font-size:15px;">${k}</div>
+                        <div style="font-size:15px; color:var(--text-main);">
+                            <span style="color:var(--primary); font-weight:bold;">${k}</span> 
+                            <span style="font-size:13px; color:#666; margin-left:5px;">${weekStr}</span>
+                            ${holidayStr}
+                        </div>
                         <div style="font-size:13px; color:#475569; margin-top:4px;">
                            <span style="background:#f1f5f9; padding:2px 6px; border-radius:4px;">${s.leader===v?'带班':(s.female===v?'女值':'男值')}</span>
                            同组: ${s.leader} / ${s.female} / ${s.male}

@@ -2,121 +2,80 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>后台管理系统 (V33 Pro)</title>
+    <title>后台管理系统</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <style>
         :root { 
-            --primary: #2563eb; --primary-hover: #1d4ed8;
-            --bg: #f8fafc; --surface: #ffffff; 
-            --border: #e2e8f0; --text: #334155; --text-light: #64748b;
+            --primary: #2563eb; --bg: #f8fafc; --surface: #ffffff; --border: #e2e8f0;
+            --text: #0f172a; 
             --leader-bg: #e0e7ff; --leader-text: #3730a3;
             --female-bg: #fce7f3; --female-text: #9d174d;
             --male-bg: #dcfce7;   --male-text: #166534;
             --holiday-bg: #fef2f2; --holiday-text: #dc2626;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
         }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         
-        /* 顶部栏 */
-        .top-bar { height: 56px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 24px; justify-content: space-between; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.03); z-index: 20; }
-        .app-title { font-weight: 700; font-size: 16px; color: var(--text); display: flex; align-items: center; gap: 12px; }
+        .top-bar { height: 50px; background: white; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; justify-content: space-between; flex-shrink: 0; }
+        .app-title { font-weight: 700; color: var(--primary); font-size: 16px; }
         
-        /* 主布局 */
         .layout { display: flex; flex: 1; overflow: hidden; }
+        .left-panel { flex: 1; display: flex; flex-direction: column; padding: 15px; overflow: hidden; border-right: 1px solid var(--border); background: #f1f5f9; }
+        .right-panel { width: 600px; background: white; display: flex; flex-direction: column; border-left: 1px solid var(--border); box-shadow: -4px 0 15px rgba(0,0,0,0.03); z-index: 10; }
         
-        /* 左侧日历面板 (自适应) */
-        .left-panel { flex: 1; display: flex; flex-direction: column; padding: 20px; overflow: hidden; background: #f1f5f9; min-width: 400px; }
-        
-        /* 右侧设置面板 (加宽至 600px) */
-        .right-panel { width: 600px; background: var(--surface); display: flex; flex-direction: column; border-left: 1px solid var(--border); box-shadow: -5px 0 25px rgba(0,0,0,0.03); z-index: 10; transition: width 0.2s; }
-        
-        /* 按钮样式 */
-        button { cursor: pointer; padding: 8px 14px; border-radius: 6px; border: 1px solid #cbd5e1; background: white; font-size: 13px; font-weight: 500; color: var(--text); transition: all 0.15s; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
-        button:hover { background: #f8fafc; border-color: #94a3b8; transform: translateY(-1px); }
-        button:active { transform: translateY(0); }
-        
-        button.primary { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2); }
-        button.primary:hover { background: var(--primary-hover); }
-        
+        button { cursor: pointer; padding: 6px 12px; border-radius: 4px; border: 1px solid #cbd5e1; background: white; font-size: 13px; transition: 0.1s; white-space: nowrap; }
+        button:hover { background: #f1f5f9; border-color: #94a3b8; }
+        button.primary { background: var(--primary); color: white; border-color: var(--primary); }
+        button.primary:hover { background: #1d4ed8; }
         button.success { background: #10b981; color: white; border-color: #10b981; }
         button.success:hover { background: #059669; }
+        button.danger { color: #ef4444; border-color: #fecaca; background: #fef2f2; }
+        button.danger:hover { background: #fee2e2; border-color: #fca5a5; }
         
-        button.danger { color: #dc2626; border-color: #fca5a5; background: #fef2f2; }
-        button.danger:hover { background: #fee2e2; border-color: #ef4444; }
+        input, select, textarea { padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; width: 100%; box-sizing: border-box; margin-bottom: 8px; font-size: 13px; }
 
-        button.icon-btn { padding: 6px; color: var(--text-light); border: 1px solid transparent; background: transparent; }
-        button.icon-btn:hover { background: #f1f5f9; color: var(--primary); border-color: #e2e8f0; }
-
-        /* 表单控件 */
-        input, select, textarea { padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; box-sizing: border-box; margin-bottom: 12px; font-size: 14px; transition: border 0.2s; background: #fff; }
-        input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); }
-        label { display: block; font-size: 12px; font-weight: 600; color: var(--text-light); margin-bottom: 4px; }
-
-        /* 日历相关 */
-        .cal-controls { display: flex; justify-content: space-between; margin-bottom: 15px; align-items: center; background: white; padding: 12px; border-radius: 10px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+        .cal-controls { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; background: white; padding: 10px; border-radius: 6px; border: 1px solid var(--border); gap: 10px; }
         .date-ctrl { display: flex; gap: 5px; align-items: center; }
         .action-btns { display: flex; gap: 8px; }
 
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; flex: 1; box-shadow: var(--shadow); }
-        .cal-head { background: #f8fafc; padding: 10px; text-align: center; font-size: 13px; font-weight: 600; color: var(--text-light); }
-        .cal-cell { background: white; padding: 6px; min-height: 80px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; flex: 1; }
+        .cal-head { background: #f8fafc; padding: 8px; text-align: center; font-size: 12px; font-weight: 600; color: #64748b; }
+        .cal-cell { background: white; padding: 6px; min-height: 80px; display: flex; flex-direction: column; gap: 3px; cursor: pointer; }
         .cal-cell:hover { background: #f8fafc; }
         .cal-cell.holiday { background: var(--holiday-bg); }
         .cal-cell.empty { background: #f9fafb; pointer-events: none; }
-        .date-num { font-weight: 700; font-size: 15px; display: flex; justify-content: space-between; color: #94a3b8; padding: 0 2px; }
         
-        .pill { font-size: 12px; padding: 3px 6px; border-radius: 4px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+        .date-num { font-weight: 700; font-size: 14px; display: flex; justify-content: space-between; margin-bottom: 2px; }
+        .pill { font-size: 11px; padding: 2px 5px; border-radius: 3px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .pill.l { background: var(--leader-bg); color: var(--leader-text); }
         .pill.f { background: var(--female-bg); color: var(--female-text); }
         .pill.m { background: var(--male-bg); color: var(--male-text); }
-        .remark-text { font-size: 11px; color: #c2410c; border-top: 1px dashed #e2e8f0; margin-top: auto; padding-top: 2px; white-space: pre-wrap; word-break: break-all; }
+        .remark-text { font-size: 10px; color: #c2410c; border-top: 1px dashed #e2e8f0; margin-top: auto; white-space: pre-wrap; word-break: break-all; }
 
-        /* === 优化后的 Tabs === */
-        .tabs { display: flex; padding: 10px 15px 0; background: var(--surface); border-bottom: 1px solid var(--border); gap: 5px; }
-        .tab { 
-            padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--text-light); cursor: pointer; 
-            border-radius: 8px 8px 0 0; border: 1px solid transparent; border-bottom: none;
-            transition: all 0.2s;
-        }
-        .tab:hover { color: var(--primary); background: #f1f5f9; }
-        .tab.active { color: var(--primary); background: #fff; border-color: var(--border); border-bottom: 1px solid #fff; margin-bottom: -1px; z-index: 2; box-shadow: 0 -2px 5px rgba(0,0,0,0.02); }
-        
-        .tab-content { flex: 1; overflow-y: auto; padding: 25px; background: #fff; }
-        .tab-pane { display: none; animation: fadeIn 0.2s; }
+        .tabs { display: flex; border-bottom: 1px solid var(--border); background: #f8fafc; }
+        .tab { flex: 1; text-align: center; padding: 12px 0; font-size: 13px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); background: white; }
+        .tab-content { flex: 1; overflow-y: auto; padding: 20px; }
+        .tab-pane { display: none; }
         .tab-pane.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* === 优化后的表格 (人员管理) === */
-        .table-container { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: var(--shadow); background: white; }
-        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        th { background: #f8fafc; text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--border); position: sticky; top: 0; font-size: 12px; color: var(--text-light); text-transform: uppercase; font-weight: 700; z-index: 5; }
-        td { padding: 10px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
-        tr:last-child td { border-bottom: none; }
-        tr:hover td { background: #f8fafc; }
+        .table-container { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8fafc; text-align: left; padding: 8px; border-bottom: 1px solid var(--border); position: sticky; top: 0; }
+        td { padding: 8px; border-bottom: 1px solid var(--border); }
         
-        .suspended-row td { color: #cbd5e1; background: #f9fafb; text-decoration: line-through; }
-        .suspended-row button { text-decoration: none; opacity: 0.5; }
-        .suspended-row button:hover { opacity: 1; }
-
-        /* 操作按钮组 */
-        .action-group { display: flex; gap: 4px; justify-content: flex-end; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+        .modal-box { background: white; padding: 20px; border-radius: 8px; width: 450px; max-width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
         
-        /* 弹窗优化 */
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
-        .modal-box { background: white; padding: 30px; border-radius: 16px; width: 450px; max-width: 90%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
-        @keyframes popIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #064e3b; color: white; padding: 10px 20px; border-radius: 30px; font-size: 13px; font-weight: 500; display: none; z-index: 2000; }
         
-        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #064e3b; color: white; padding: 10px 24px; border-radius: 50px; font-size: 14px; font-weight: 500; display: none; z-index: 2000; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-        
-        /* 响应式调整 */
-        @media (max-width: 1000px) {
-            .layout { flex-direction: column; overflow-y: auto; }
-            .left-panel { min-height: 500px; flex: none; }
-            .right-panel { width: 100%; border-left: none; border-top: 1px solid var(--border); flex: none; min-height: 600px; }
-        }
-        
-        .lab-switch-item { display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #e2e8f0; }
+        .suspended-row { color: #94a3b8; background: #f8fafc; text-decoration: line-through; }
+        .lab-switch-item { display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 10px; border-radius: 6px; margin-bottom: 10px; border: 1px solid #e2e8f0; }
         .menu-day { border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px; }
+        
+        /* 纯净版样式调整 */
+        h4 { margin-top: 0; margin-bottom: 15px; color: #334155; font-size: 14px; border-left: 4px solid var(--primary); padding-left: 10px; }
+        .icon-btn { border: none; background: none; padding: 2px 6px; font-size: 14px; color: #64748b; }
+        .icon-btn:hover { color: var(--primary); background: #f1f5f9; border-radius: 3px; }
     </style>
 </head>
 <body>
@@ -124,30 +83,30 @@
 <div id="toast">操作成功</div>
 
 <div id="loginLayer" style="position:fixed; inset:0; background:#f1f5f9; z-index:9999; display:flex; justify-content:center; align-items:center;">
-    <div style="background:white; padding:40px; border-radius:12px; text-align:center; box-shadow:0 10px 15px rgba(0,0,0,0.05);">
-        <h2 style="color:var(--primary); margin-top:0;">🔐 后台管理</h2>
-        <input type="password" id="adminPass" placeholder="输入管理密码 (默认 admin888)" style="text-align:center; padding:10px;">
+    <div style="background:white; padding:40px; border-radius:8px; text-align:center; box-shadow:0 10px 15px rgba(0,0,0,0.05);">
+        <h2 style="color:var(--primary); margin-top:0;">后台管理</h2>
+        <input type="password" id="adminPass" placeholder="输入管理密码" style="text-align:center; padding:10px;">
         <button class="primary" style="width:100%; margin-top:10px; padding:10px;" onclick="app.login()">登录</button>
     </div>
 </div>
 
 <div class="top-bar">
-    <div class="app-title">⚙️ 值班管理控制台 <span style="font-size:11px; background:#e0e7ff; padding:2px 6px; border-radius:4px; margin-left:10px;">V33 Pro</span></div>
-    <button class="danger" onclick="location.reload()">🔒 安全退出</button>
+    <div class="app-title">值班管理控制台</div>
+    <button class="danger" onclick="location.reload()">退出</button>
 </div>
 
 <div class="layout">
     <div class="left-panel">
         <div class="cal-controls">
             <div class="date-ctrl">
-                <button onclick="app.changeMonth(-1)">◀</button>
+                <button onclick="app.changeMonth(-1)">上月</button>
                 <input type="month" id="calMonthPicker" style="width:auto; margin:0; font-weight:bold; cursor:pointer;" onchange="app.onMonthPick()">
-                <button onclick="app.changeMonth(1)">▶</button>
+                <button onclick="app.changeMonth(1)">下月</button>
             </div>
             <div class="action-btns">
-                <button class="danger" onclick="app.deleteCurrentMonth()">🗑️ 删除</button>
-                <button class="primary" onclick="app.downloadMonth()">📥 下载</button>
-                <button class="success" onclick="app.publishSchedule()">☁️ 发布排班</button>
+                <button class="danger" onclick="app.deleteCurrentMonth()">删除本月</button>
+                <button class="primary" onclick="app.downloadMonth()">下载本月</button>
+                <button class="success" onclick="app.publishSchedule()">发布排班</button>
             </div>
         </div>
         <div id="calGrid" class="cal-grid"></div>
@@ -155,25 +114,25 @@
 
     <div class="right-panel">
         <div class="tabs">
-            <div class="tab active" onclick="app.tab('t-rules')">⚡ 规则</div>
-            <div class="tab" onclick="app.tab('t-person')">👥 人员</div>
-            <div class="tab" onclick="app.tab('t-holiday')">📅 假日</div>
-            <div class="tab" onclick="app.tab('t-lab')">🧪 实验室</div>
-            <div class="tab" onclick="app.tab('t-data')">💾 数据</div>
-            <div class="tab" onclick="app.tab('t-logs')">📜 日志</div>
+            <div class="tab active" onclick="app.tab('t-rules')">规则</div>
+            <div class="tab" onclick="app.tab('t-person')">人员</div>
+            <div class="tab" onclick="app.tab('t-holiday')">假日</div>
+            <div class="tab" onclick="app.tab('t-lab')">实验室</div>
+            <div class="tab" onclick="app.tab('t-data')">数据</div>
+            <div class="tab" onclick="app.tab('t-logs')">日志</div>
         </div>
 
         <div class="tab-content">
             <div id="t-rules" class="tab-pane active">
                 <div style="background:#fff7ed; border:1px solid #fed7aa; padding:12px; border-radius:6px; margin-bottom:20px;">
-                    <label style="color:#c2410c; font-size:12px; font-weight:bold;">📢 滚动公告设置</label>
+                    <label style="color:#c2410c;">滚动公告设置</label>
                     <textarea id="noticeInput" rows="2" placeholder="输入公告内容..."></textarea>
                     <div style="display:flex; gap:5px;">
                         <button class="primary" style="flex:1" onclick="app.saveNotice()">更新公告</button>
                         <button onclick="app.clearNotice()">清空</button>
                     </div>
                 </div>
-                <h4 style="margin-top:0;">⚡ 自动排班</h4>
+                <h4>自动排班 (含轮空过滤)</h4>
                 <label>带班 (工作日) 起始</label><select id="slW"></select>
                 <label>带班 (假日) 起始</label><select id="slH"></select>
                 <label>女值班员 起始</label><select id="sf"></select>
@@ -182,25 +141,25 @@
                     <label>生成月份</label>
                     <div style="display:flex; gap:5px;">
                         <input type="month" id="genMonth" style="margin:0">
-                        <button class="primary" onclick="app.generate()">⚡ 生成预览 (不自动发布)</button>
+                        <button class="primary" onclick="app.generate()">生成预览 (需点击发布生效)</button>
                     </div>
                 </div>
             </div>
 
             <div id="t-person" class="tab-pane">
-                <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center;">
+                <div style="display:flex; gap:5px; margin-bottom:10px;">
                     <select id="manageType" onchange="app.renderPersonList()" style="margin:0; flex:1;">
                         <option value="leader">带班领导</option>
                         <option value="female">女值班员</option>
                         <option value="male">男值班员</option>
                     </select>
-                    <button class="primary" onclick="app.editPerson()">+ 添加人员</button>
+                    <button class="primary" onclick="app.editPerson()">添加</button>
                 </div>
                 <div id="personList"></div>
-                <div style="margin-top:15px; display:flex; gap:5px;">
-                    <button onclick="app.downloadTemplate('person')">⬇ 模板</button>
+                <div style="margin-top:15px; display:flex; gap:5px; border-top:1px dashed #eee; padding-top:15px;">
+                    <button onclick="app.downloadTemplate('person')">下载模板</button>
                     <input type="file" id="upPer" hidden onchange="app.importExcel(this,'person')">
-                    <button onclick="document.getElementById('upPer').click()">⬆ 导入 Excel</button>
+                    <button onclick="document.getElementById('upPer').click()">导入人员 Excel</button>
                 </div>
             </div>
 
@@ -210,23 +169,23 @@
                     <input type="date" id="hStart" style="flex:1">
                     <input type="date" id="hEnd" style="flex:1">
                 </div>
-                <button class="primary" style="width:100%; margin-bottom:15px;" onclick="app.addHolidayRange()">+ 添加假日区间</button>
+                <button class="primary" style="width:100%; margin-bottom:15px;" onclick="app.addHolidayRange()">添加假日区间</button>
                 <div id="holidayChips" style="display:flex; flex-wrap:wrap; gap:5px;"></div>
             </div>
 
             <div id="t-lab" class="tab-pane">
-                <h4>🔧 实验室功能开关</h4>
-                <div class="lab-switch-item"><span>🔍 值班查询</span><input type="checkbox" id="sw_query" onchange="app.saveLabConfig()"></div>
-                <div class="lab-switch-item"><span>🍱 每周菜谱</span><input type="checkbox" id="sw_menu" onchange="app.saveLabConfig()"></div>
-                <div class="lab-switch-item"><span>🔮 值班预估</span><input type="checkbox" id="sw_predict" onchange="app.saveLabConfig()"></div>
-                <hr>
-                <h4>📝 菜谱编辑</h4>
+                <h4>实验室功能开关</h4>
+                <div class="lab-switch-item"><span>值班查询</span><input type="checkbox" id="sw_query" onchange="app.saveLabConfig()"></div>
+                <div class="lab-switch-item"><span>每周菜谱</span><input type="checkbox" id="sw_menu" onchange="app.saveLabConfig()"></div>
+                <div class="lab-switch-item"><span>值班预估</span><input type="checkbox" id="sw_predict" onchange="app.saveLabConfig()"></div>
+                <hr style="border:0; border-top:1px dashed #eee; margin:20px 0;">
+                <h4>菜谱编辑</h4>
                 <div id="menuEditor"></div>
-                <button class="primary" style="width:100%" onclick="app.saveLabConfig()">💾 保存配置</button>
+                <button class="primary" style="width:100%" onclick="app.saveLabConfig()">保存配置</button>
             </div>
 
             <div id="t-data" class="tab-pane">
-                <h4>🔐 修改密码</h4>
+                <h4>修改密码</h4>
                 <div style="display:flex; gap:5px;">
                     <input id="newAdmin" placeholder="新·管理密码"><button class="primary" onclick="app.changePass('admin')">改</button>
                 </div>
@@ -234,17 +193,17 @@
                     <input id="newView" placeholder="新·查看密码"><button class="primary" onclick="app.changePass('view')">改</button>
                 </div>
                 
-                <h4 style="margin-top:20px;">💾 数据备份与恢复</h4>
-                <button class="success" style="width:100%; margin-bottom:5px;" onclick="app.exportData()">⬇ 备份全量数据 (.json)</button>
+                <h4 style="margin-top:20px;">数据备份与恢复</h4>
+                <button class="success" style="width:100%; margin-bottom:5px;" onclick="app.exportData()">备份全量数据 (.json)</button>
                 <div style="display:flex; gap:5px; margin-bottom:15px;">
                     <input type="file" id="upJson" hidden onchange="app.importGlobalData(this)">
-                    <button style="width:100%" onclick="document.getElementById('upJson').click()">📤 恢复备份文件</button>
+                    <button style="width:100%" onclick="document.getElementById('upJson').click()">恢复备份文件</button>
                 </div>
 
                 <div style="border-top:1px dashed #ccc; margin:15px 0; padding-top:15px;">
-                    <label>📅 导入历史值班表</label>
+                    <label style="font-size:12px; color:#666;">导入历史值班表</label>
                     <input type="file" id="upHist" hidden onchange="app.importHistory(this)">
-                    <button style="width:100%" onclick="document.getElementById('upHist').click()">⬆ 上传历史 Excel</button>
+                    <button style="width:100%" onclick="document.getElementById('upHist').click()">上传历史 Excel</button>
                 </div>
             </div>
             
@@ -260,8 +219,8 @@
     </div>
 </div>
 
-<div id="swapModal" class="modal-overlay"><div class="modal-box"><h3 style="margin-top:0;" id="swapTitle">换班调整</h3><input type="hidden" id="swapDate"><input type="hidden" id="swapIsHoliday"><div style="background:#fff7ed; padding:10px; border-radius:6px; margin-bottom:10px;"><div style="font-size:11px; color:#c2410c; font-weight:bold; margin-bottom:5px;">🚑 备勤推荐 (本月最后一人接续)</div><div id="standbyPool" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:5px;"></div></div><label>带班</label><select id="swL"></select><label>女值</label><select id="swF"></select><label>男值</label><select id="swM"></select><label>备注</label><textarea id="swR" rows="2"></textarea><div style="display:flex; gap:10px; margin-top:10px;"><button style="flex:1" onclick="document.getElementById('swapModal').style.display='none'">取消</button><button class="primary" style="flex:1" onclick="app.saveSwap()">确定</button></div></div></div>
-<div id="editModal" class="modal-overlay"><div class="modal-box"><h3 style="margin-top:0;">编辑人员</h3><input type="hidden" id="edId"><input type="hidden" id="edType"><label>姓名</label><input id="edName"><div id="leaderFields" style="display:none; gap:10px;"><div style="flex:1"><label>职务</label><input id="edJob"></div><div style="flex:1"><label>座机</label><input id="edLand"></div></div><label>手机</label><input id="edPhone"><div style="background:#f1f5f9; padding:10px; border-radius:6px; margin:10px 0;"><label style="color:#dc2626; font-size:12px;">⛔ 轮空期 (在此期间不排班)</label><div id="skipList" style="margin-bottom:5px;"></div><div style="display:flex; gap:5px;"><input type="date" id="skipStart" style="margin:0;"><input type="date" id="skipEnd" style="margin:0;"><button class="danger" style="padding:4px 8px;" onclick="app.addSkip()">+</button></div></div><div style="display:flex; gap:10px; margin-top:10px;"><button style="flex:1" onclick="document.getElementById('editModal').style.display='none'">取消</button><button class="primary" style="flex:1" onclick="app.savePerson()">保存</button></div></div></div>
+<div id="swapModal" class="modal-overlay"><div class="modal-box"><h3 style="margin-top:0;">换班调整</h3><input type="hidden" id="swapDate"><input type="hidden" id="swapIsHoliday"><div style="background:#fff7ed; padding:10px; border-radius:6px; margin-bottom:10px;"><div style="font-size:11px; color:#c2410c; font-weight:bold; margin-bottom:5px;">备勤推荐</div><div id="standbyPool" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:5px;"></div></div><label>带班</label><select id="swL"></select><label>女值</label><select id="swF"></select><label>男值</label><select id="swM"></select><label>备注</label><textarea id="swR" rows="2"></textarea><div style="display:flex; gap:10px; margin-top:10px;"><button style="flex:1" onclick="document.getElementById('swapModal').style.display='none'">取消</button><button class="primary" style="flex:1" onclick="app.saveSwap()">确定</button></div></div></div>
+<div id="editModal" class="modal-overlay"><div class="modal-box"><h3 style="margin-top:0;">编辑人员</h3><input type="hidden" id="edId"><input type="hidden" id="edType"><label>姓名</label><input id="edName"><div id="leaderFields" style="display:none; gap:10px;"><div style="flex:1"><label>职务</label><input id="edJob"></div><div style="flex:1"><label>座机</label><input id="edLand"></div></div><label>手机</label><input id="edPhone"><div style="background:#f1f5f9; padding:10px; border-radius:6px; margin:10px 0;"><label style="color:#dc2626; font-size:12px;">轮空期 (不排班时间段)</label><div id="skipList" style="margin-bottom:5px;"></div><div style="display:flex; gap:5px;"><input type="date" id="skipStart" style="margin:0;"><input type="date" id="skipEnd" style="margin:0;"><button class="danger" style="padding:4px 8px;" onclick="app.addSkip()">+</button></div></div><div style="display:flex; gap:10px; margin-top:10px;"><button style="flex:1" onclick="document.getElementById('editModal').style.display='none'">取消</button><button class="primary" style="flex:1" onclick="app.savePerson()">保存</button></div></div></div>
 
 <script>
 window.app = {
@@ -324,12 +283,12 @@ window.app = {
         const switches = { query: document.getElementById('sw_query').checked, menu: document.getElementById('sw_menu').checked, predict: document.getElementById('sw_predict').checked };
         const menus = [1,2,3,4,5].map(i => document.getElementById(`menu_d${i}`).value);
         this.data.labConfig = { switches, menus };
-        await this.save(); this.toast("🧪 实验室配置已保存");
+        await this.save(); this.toast("实验室配置已保存");
     },
 
     // --- Actions ---
-    async publishSchedule() { await this.save(); this.log('发布排班', `${this.vy}-${this.vm}`); this.toast("✅ 排班已发布"); },
-    async saveNotice() { this.data.notice = document.getElementById('noticeInput').value; await this.save(); this.log('更新公告', this.data.notice); this.toast("✅ 公告已更新"); },
+    async publishSchedule() { await this.save(); this.log('发布排班', `${this.vy}-${this.vm}`); this.toast("排班已发布"); },
+    async saveNotice() { this.data.notice = document.getElementById('noticeInput').value; await this.save(); this.log('更新公告', this.data.notice); this.toast("公告已更新"); },
     clearNotice() { document.getElementById('noticeInput').value=""; this.saveNotice(); },
     deleteCurrentMonth() { if(!confirm(`删除本月数据？`)) return; const p=`${this.vy}-${String(this.vm).padStart(2,'0')}`; Object.keys(this.data.schedules).forEach(k=>{if(k.startsWith(p))delete this.data.schedules[k]}); this.save(); this.renderCal(); this.log('删除月度', p); },
     downloadMonth() {
@@ -433,25 +392,22 @@ window.app = {
         let h=`<div class="table-container"><table><thead><tr><th>姓名</th>${t==='leader'?'<th>职务</th><th>座机</th>':''}<th>手机</th><th>操作</th></tr></thead><tbody>`;
         l.forEach((p,i)=>{
             const hasActiveSkip = (p.skips||[]).some(s => { const now = new Date().toISOString().split('T')[0]; return s.end >= now; });
-            const skipRange = (p.skips||[]).map(s=>`${s.start}~${s.end}`).join(' ');
+            const skipRanges = (p.skips||[]).map(s=>s.start+'~'+s.end).join(' ');
             h+=`<tr class="${hasActiveSkip?'suspended-row':''}">
-                <td>${p.name}${hasActiveSkip?`<br><small style="color:red">🚫${skipRange}</small>`:''}</td>
+                <td>${p.name}${hasActiveSkip?`<br><small style="color:red">🚫${skipRanges}</small>`:''}</td>
                 ${t==='leader'?`<td>${p.job||'-'}</td><td>${p.landline||'-'}</td>`:''}
                 <td>${p.phone||'-'}</td>
                 <td>
-                    <button class="icon-btn" title="上移" onclick="app.movePerson('${t}',${i},-1)">▲</button>
-                    <button class="icon-btn" title="下移" onclick="app.movePerson('${t}',${i},1)">▼</button>
-                    <button class="icon-btn" onclick="app.editPerson(${i})">✎</button> 
-                    <button class="icon-btn" style="color:red" onclick="app.delPerson('${t}',${i})">×</button>
+                    <button style="padding:2px 6px;" title="上移" onclick="app.movePerson('${t}',${i},-1)">▲</button>
+                    <button style="padding:2px 6px;" title="下移" onclick="app.movePerson('${t}',${i},1)">▼</button>
+                    <button style="padding:2px 6px;" title="编辑" onclick="app.editPerson(${i})">✎</button> 
+                    <button style="padding:2px 6px;color:red;" title="删除" onclick="app.delPerson('${t}',${i})">×</button>
                 </td></tr>`;
         });
         document.getElementById('personList').innerHTML=h+`</tbody></table></div>`;
         this.fillSelects();
     },
-    movePerson(t, i, d) {
-        const l = this.data.personnel[t], dest = i + d;
-        if (dest >= 0 && dest < l.length) { [l[i], l[dest]] = [l[dest], l[i]]; this.save(); this.renderPersonList(); }
-    },
+    movePerson(t, i, d) { const l=this.data.personnel[t], dest=i+d; if(dest>=0 && dest<l.length){ [l[i],l[dest]]=[l[dest],l[i]]; this.save(); this.renderPersonList(); } },
     editPerson(i=null) {
         const t=document.getElementById('manageType').value;
         document.getElementById('editModal').style.display='flex';
@@ -474,8 +430,6 @@ window.app = {
         this.log('编辑人员', `${t}:${n}`); this.save(); this.renderPersonList(); document.getElementById('editModal').style.display='none';
     },
     delPerson(t,i) { if(confirm('删除?')) { this.data.personnel[t].splice(i,1); this.log('删除人员', t); this.save(); this.renderPersonList(); } },
-    
-    // --- Gen ---
     fillSelects() { const f=(id,t)=>document.getElementById(id).innerHTML=this.data.personnel[t].map(p=>`<option value="${p.name}">${p.name}</option>`).join(''); f('slW','leader');f('slH','leader');f('sf','female');f('sm','male'); },
     generate() {
         const ms=document.getElementById('genMonth').value; if(!ms)return alert('选月份');
@@ -484,7 +438,7 @@ window.app = {
         let iw=getI('slW','leader'), ih=getI('slH','leader'), ife=getI('sf','female'), ima=getI('sm','male');
         const pL=this.data.personnel.leader, pF=this.data.personnel.female, pM=this.data.personnel.male;
         
-        // 修复：日期字符串比对逻辑
+        // 修复：日期比对，确保不因时区失效
         const isSkipped = (p, dateStr) => (p.skips||[]).some(s => dateStr >= s.start && dateStr <= s.end);
         
         const pick=(list, start, dateStr)=>{
@@ -503,12 +457,8 @@ window.app = {
             const f=pick(pF,ife,ds); ife=f.next; const ma=pick(pM,ima,ds); ima=ma.next;
             this.data.schedules[ds]={leader:l, female:f.name, male:ma.name, remark:''};
         }
-        // 修复：不再自动save，只渲染日历
-        this.renderCal(); 
-        this.toast('⚡ 预览已生成，请点击【☁️ 发布】保存');
+        this.renderCal(); this.toast('⚡ 预览已生成，请点击【☁️ 发布】保存');
     },
-
-    // --- Holiday ---
     renderHoliday() { const y=document.getElementById('hYear').value, l=this.data.holidays[y]||[]; document.getElementById('holidayChips').innerHTML=l.sort().map(d=>`<div style="background:white;border:1px solid #f87171;padding:2px 6px;border-radius:4px;font-size:11px;color:#dc2626;">${d.substring(5)} <span onclick="app.delHoliday('${y}','${d}')" style="cursor:pointer;font-weight:bold">&times;</span></div>`).join(''); },
     addHolidayRange() { const y=document.getElementById('hYear').value, s=document.getElementById('hStart').value, e=document.getElementById('hEnd').value; if(!s||!e)return; let d=new Date(s), en=new Date(e), c=0; if(!this.data.holidays[y])this.data.holidays[y]=[]; while(d<=en){ const k=d.toISOString().slice(0,10); if(!this.data.holidays[y].includes(k)){this.data.holidays[y].push(k);c++} d.setDate(d.getDate()+1); } this.log('添加假日', s); this.save(); this.renderHoliday(); },
     delHoliday(y,d) { this.data.holidays[y]=this.data.holidays[y].filter(x=>x!==d); this.log('删除假日', d); this.save(); this.renderHoliday(); },
@@ -519,6 +469,19 @@ window.app = {
     clearLogs() { this.data.logs=[]; this.save(); this.renderLogs(); },
     tab(id) { document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); event.currentTarget.classList.add('active'); document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); },
     downloadTemplate(t) { const d = t==='person' ? [{"人员类型":"带班领导","姓名":"张三","职务":"处长","座机":"8001","手机":"139"}] : [{"日期":"2025-01-01"}]; XLSX.writeFile(XLSX.utils.book_new(XLSX.utils.json_to_sheet(d)), "模板.xlsx"); },
+    importExcel(inp, type) {
+        const f=inp.files[0]; if(!f)return;
+        const r=new FileReader();
+        r.onload=e=>{
+            const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'}), rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+            let c=0;
+            if(type==='person') {
+                const map={'带班领导':'leader','女值班员':'female','男值班员':'male'};
+                rows.forEach(r=>{ const t=map[r['人员类型']]; if(t){this.data.personnel[t].push({name:r['姓名'],phone:r['手机'],job:r['职务'],landline:r['座机'],remark:r['备注'],skips:[]});c++} });
+            }
+            this.log('导入人员', c+'条'); this.save(); this.renderPersonList(); inp.value=''; alert(`导入 ${c} 条`);
+        }; r.readAsArrayBuffer(f);
+    },
     changePass(type) { const v = type==='admin'?document.getElementById('newAdmin').value : document.getElementById('newView').value; if(!v) return; if(confirm(`修改${type==='admin'?'管理':'查看'}密码？`)) fetch(this.api, {method:'POST', body:JSON.stringify({action:'change_pass', password:this.token, [type==='admin'?'newAdminPass':'newViewPass']:v})}).then(()=>{alert('成功');}); }
 };
 window.onload=()=>app.init();

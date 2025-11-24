@@ -13,8 +13,9 @@
             --male-bg: #dcfce7;   --male-text: #166534;
             --holiday-bg: #fef2f2; --holiday-text: #dc2626;
             --notice-bg: #fff7ed; --notice-text: #c2410c;
+            --today-ring: #f59e0b;
         }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: var(--bg); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; padding-bottom: env(safe-area-inset-bottom); }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; padding-bottom: env(safe-area-inset-bottom); }
         #loginOverlay { position: fixed; inset: 0; background: rgba(255,255,255,0.98); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.3s; padding: 20px; }
         .login-card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 320px; text-align: center; border: 1px solid var(--border); box-sizing: border-box; }
         .login-btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 15px; font-weight: 600; }
@@ -42,7 +43,7 @@
         .tag-f { background: var(--female-bg); color: var(--female-text); }
         .tag-m { background: var(--male-bg); color: var(--male-text); }
         .remark { font-size: 10px; color: #c2410c; margin-top: auto; padding-top: 2px; border-top: 1px dashed #f1f5f9; white-space: pre-wrap; word-break: break-all; line-height: 1.2; }
-        /* Lab */
+        
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; justify-content: center; align-items: center; backdrop-filter: blur(2px); padding: 20px; }
         .modal-card { background: white; width: 100%; max-width: 400px; max-height: 80vh; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.1); box-sizing: border-box; overflow-y: auto; }
         .lab-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
@@ -83,16 +84,11 @@
         <div id="labMenu" class="lab-grid">
             <div class="lab-item" onclick="app.openFeature('query')"><div class="lab-icon">🔍</div><div class="lab-text"><h4>值班查询</h4><p>查找排班/导出日历</p></div></div>
             <div class="lab-item" onclick="app.openFeature('menu')"><div class="lab-icon">🍱</div><div class="lab-text"><h4>每周菜谱</h4><p>查看本周食堂供应</p></div></div>
-            <div class="lab-item" onclick="app.openFeature('predict')"><div class="lab-icon">🔮</div><div class="lab-text"><h4>值班预估</h4><p>智能推算未来排班</p></div></div>
+            <div class="lab-item" onclick="app.openFeature('predict')"><div class="lab-icon">🔮</div><div class="lab-text"><h4>值班预估</h4><p>推算未来排班</p></div></div>
         </div>
-
-        <div id="feat_query" class="lab-content">
-            <div style="display:flex; gap:10px; margin-bottom:15px;"><input id="sInput" placeholder="输入姓名" style="flex:1; padding:10px; border:1px solid #ddd; border-radius:6px;" onkeydown="if(event.key==='Enter') app.search()"><button class="btn" style="background:var(--primary); color:white; border:none; padding:0 20px;" onclick="app.search()">查询</button></div>
-            <div id="sResultWrapper" style="max-height:400px; overflow-y:auto;"><div id="icsContainer"></div><div id="sResult"></div></div>
-        </div>
-
+        <div id="feat_query" class="lab-content"><div style="display:flex; gap:10px; margin-bottom:15px;"><input id="sInput" placeholder="输入姓名" style="flex:1; padding:10px; border:1px solid #ddd; border-radius:6px;" onkeydown="if(event.key==='Enter') app.search()"><button class="btn" style="background:var(--primary); color:white; border:none; padding:0 20px;" onclick="app.search()">查询</button></div><div id="sResultWrapper" style="max-height:400px; overflow-y:auto;"><div id="icsContainer"></div><div id="sResult"></div></div></div>
         <div id="feat_menu" class="lab-content"><div id="menuList"></div></div>
-        <div id="feat_predict" class="lab-content"><p style="font-size:12px;color:#c2410c;background:#fff7ed;padding:10px;border-radius:6px;">⚠️ 仅供参考：基于当前队列顺序和已添加的假日进行推算。</p><div style="display:flex; gap:10px; margin:15px 0;"><input id="pInput" placeholder="输入姓名" style="flex:1; padding:10px; border:1px solid #ddd; border-radius:6px;"><button class="btn" style="background:var(--primary); color:white;" onclick="app.predict()">预估</button></div><div id="pResult"></div></div>
+        <div id="feat_predict" class="lab-content"><p style="font-size:12px;color:#c2410c;background:#fff7ed;padding:10px;border-radius:6px;">⚠️ 仅供参考：基于已发布值班表最后一日的【初始排班人员】进行推算（已自动剔除换班/备勤影响）。</p><div style="display:flex; gap:10px; margin:15px 0;"><input id="pInput" placeholder="输入姓名" style="flex:1; padding:10px; border:1px solid #ddd; border-radius:6px;"><button class="btn" style="background:var(--primary); color:white;" onclick="app.predict()">预估</button></div><div id="pResult"></div></div>
         <div id="feat_wip" class="lab-content" style="text-align:center; padding:40px 0;"><div style="font-size:40px;">🚧</div><div style="color:#64748b;">该功能后台暂时关闭<br>正在施工中...</div></div>
     </div>
 </div>
@@ -149,7 +145,6 @@ window.app = {
         else { document.getElementById('noticeBar').style.display = 'none'; }
     },
 
-    // --- Lab ---
     openLab() { document.getElementById('labModal').style.display = 'flex'; this.labBack(); },
     labBack() { document.getElementById('labMenu').style.display = 'grid'; document.querySelectorAll('.lab-content').forEach(el => el.style.display = 'none'); document.getElementById('labBack').style.display = 'none'; document.getElementById('labTitle').innerText = '实验室功能'; },
     openFeature(feat) {
@@ -162,7 +157,6 @@ window.app = {
         else if(feat === 'predict') { document.getElementById('labTitle').innerText = '值班预估'; }
     },
 
-    // --- Search (V29 Logic) ---
     search() {
         const v = document.getElementById('sInput').value.trim();
         const r = document.getElementById('sResult'), icsDiv = document.getElementById('icsContainer');
@@ -195,121 +189,109 @@ window.app = {
         const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([ics], {type:'text/calendar'})); link.download = "值班.ics"; link.click();
     },
 
-    // --- Predict (New Logic) ---
+    // --- Predict Logic (Corrected) ---
     predict() {
         const name = document.getElementById('pInput').value.trim();
         if(!name) return;
         const resDiv = document.getElementById('pResult'); resDiv.innerHTML = '计算中...';
         
-        // 1. 找人
+        // 1. 找人 & 类型
         let type = null, pIdx = -1;
-        ['leader','female','male'].forEach(t => {
-            const idx = this.data.personnel[t].findIndex(p=>p.name===name);
-            if(idx !== -1) { type = t; pIdx = idx; }
-        });
+        ['leader','female','male'].forEach(t => { const idx = this.data.personnel[t].findIndex(p=>p.name===name); if(idx !== -1) { type = t; pIdx = idx; } });
         if(!type) { resDiv.innerHTML = `<div style="color:red;text-align:center;">未找到人员 [${name}]</div>`; return; }
 
-        // 2. 找最后排班日期 & 状态
+        // 2. 找最后排班
         const dates = Object.keys(this.data.schedules).sort();
         if(!dates.length) { resDiv.innerHTML = '暂无排班数据，无法预测'; return; }
         const lastDateStr = dates[dates.length-1];
         const [ly, lm, ld] = lastDateStr.split('-').map(Number);
         const lastDate = new Date(ly, lm-1, ld);
         
-        // 3. 确定队列位置
-        const lastS = this.data.schedules[lastDateStr];
-        const getNextIdx = (t, currentName) => {
-            const list = this.data.personnel[t];
-            const idx = list.findIndex(p=>p.name===currentName);
-            return idx === -1 ? 0 : (idx + 1) % list.length;
+        // 3. 辅助: 解析原始值班人
+        const getOriginalName = (nameInCell, remark) => {
+            if (!remark) return nameInCell;
+            // 匹配 【换】原名→新名 或 【备】原名→新名
+            const regex = /【(?:换|备)】\s*([^→]+)\s*→\s*([^\s]+)/g;
+            let match;
+            while ((match = regex.exec(remark)) !== null) {
+                if (match[2] === nameInCell) return match[1].trim(); // 如果当前名字是“新名”，则返回“原名”
+            }
+            return nameInCell;
         };
 
-        let currIdx = 0;
+        // 4. 预测逻辑
         if(type === 'leader') {
-            // 复杂逻辑：带班分平日/假日
-            // 需要回溯找到最后一个“平日带班”和“假日带班”
+            // 回溯找到最后一个“平日带班”和“假日带班”的【原始人】
             let lastW_L=null, lastH_L=null;
             for(let i=dates.length-1; i>=0; i--) {
                 const d = dates[i], s = this.data.schedules[d];
                 const y = d.split('-')[0], isH = (this.data.holidays[y]||[]).includes(d);
-                if(isH && !lastH_L) lastH_L = s.leader;
-                if(!isH && !lastW_L) lastW_L = s.leader;
+                
+                const originalL = getOriginalName(s.leader, s.remark);
+                
+                if(isH && !lastH_L) lastH_L = originalL;
+                if(!isH && !lastW_L) lastW_L = originalL;
                 if(lastH_L && lastW_L) break;
             }
-            // 预测分别展示
-            this.showDualPrediction(resDiv, name, pIdx, lastW_L, lastH_L, lastDate);
-            return;
+            this.showDualPrediction(resDiv, type, pIdx, lastW_L, lastH_L, lastDate);
         } else {
-            // 值班员单队列
-            const lastVal = type==='female' ? lastS.female : lastS.male;
-            currIdx = getNextIdx(type, lastVal);
-            this.showSinglePrediction(resDiv, type, pIdx, currIdx, lastDate);
+            // 值班员
+            const lastS = this.data.schedules[lastDateStr];
+            const lastVal = type==='female' ? getOriginalName(lastS.female, lastS.remark) : getOriginalName(lastS.male, lastS.remark);
+            this.showSinglePrediction(resDiv, type, pIdx, lastVal, lastDate);
         }
     },
 
-    showSinglePrediction(div, type, targetIdx, startIdx, startDate) {
+    showSinglePrediction(div, type, targetIdx, lastVal, startDate) {
         const list = this.data.personnel[type];
-        const future = this.sim(startDate, 365, (d, isH) => {
-             return true; // 值班员每天都排，不分假日
-        }, list, startIdx, targetIdx);
-        
+        const lastIdx = list.findIndex(p=>p.name===lastVal);
+        // 如果找不到最后一个人（可能被删了），默认从0开始
+        const startIdx = lastIdx === -1 ? 0 : (lastIdx + 1) % list.length;
+        const future = this.sim(startDate, 365, (d, isH) => true, list, startIdx, targetIdx);
         div.innerHTML = this.formatRes(future, "值班员 (不分节假日)");
     },
 
-    showDualPrediction(div, name, targetIdx, lastW, lastH, startDate) {
+    showDualPrediction(div, type, targetIdx, lastW, lastH, startDate) {
         const list = this.data.personnel.leader;
         
-        // 平日预测
+        // 平日
         const idxW = lastW ? (list.findIndex(p=>p.name===lastW)+1)%list.length : 0;
-        const resW = this.sim(startDate, 90, (d, isH) => !isH, list, idxW, targetIdx);
+        const resW = this.sim(startDate, 180, (d, isH) => !isH, list, idxW, targetIdx);
         
-        // 假日预测
+        // 假日
         const idxH = lastH ? (list.findIndex(p=>p.name===lastH)+1)%list.length : 0;
-        const resH = this.sim(startDate, 365, (d, isH) => isH, list, idxH, targetIdx); // 假日查久一点
+        const resH = this.sim(startDate, 365, (d, isH) => isH, list, idxH, targetIdx);
 
         div.innerHTML = this.formatRes(resW, "平日带班") + this.formatRes(resH, "假日带班");
     },
 
-    // 模拟推算核心
     sim(startDate, daysLimit, conditionFn, list, currentIdx, targetIdx) {
-        let d = new Date(startDate); d.setDate(d.getDate() + 1); // 从明天开始
+        let d = new Date(startDate); d.setDate(d.getDate() + 1);
         let ptr = currentIdx;
-        let foundDate = null;
 
         for(let i=0; i<daysLimit; i++) {
             const ds = d.toISOString().split('T')[0], y = ds.split('-')[0];
             const isH = (this.data.holidays[y]||[]).includes(ds);
             
             if(conditionFn(ds, isH)) {
-                // 这是一个有效轮次
-                // 检查人员是否被悬停 (skip)
                 let p = list[ptr];
-                // 跳过悬停人员
+                // 悬停检查
                 while((p.skips||[]).some(s=>ds>=s.start && ds<=s.end)) {
                     ptr = (ptr + 1) % list.length;
                     p = list[ptr];
-                    // 防止死循环
-                    if(ptr === currentIdx) return {date: null, err: "全员悬停"}; 
+                    if(ptr === currentIdx) return {err: "全员悬停"}; 
                 }
-
-                if(ptr === targetIdx) { foundDate = ds; break; }
+                if(ptr === targetIdx) return {date: ds};
                 ptr = (ptr + 1) % list.length;
             }
             d.setDate(d.getDate() + 1);
         }
-        return {date: foundDate};
+        return {err: "超出预测范围 (可能未定义足够假日)"};
     },
 
     formatRes(res, title) {
-        let content = "";
-        if(res.err) content = `<span style="color:red">${res.err}</span>`;
-        else if(res.date) content = `<span style="color:var(--primary);font-weight:bold;font-size:16px;">${res.date}</span>`;
-        else content = `<span style="color:#94a3b8">近期无排班 (或未定义足够假日)</span>`;
-        
-        return `<div style="margin-top:10px;border-bottom:1px dashed #eee;padding-bottom:5px;">
-            <div style="font-size:12px;color:#64748b;">${title}</div>
-            <div style="margin-top:2px;">${content}</div>
-        </div>`;
+        const content = res.err ? `<span style="color:#94a3b8">${res.err}</span>` : `<span style="color:var(--primary);font-weight:bold;font-size:16px;">${res.date}</span>`;
+        return `<div style="margin-top:10px;border-bottom:1px dashed #eee;padding-bottom:5px;"><div style="font-size:12px;color:#64748b;">${title}</div><div style="margin-top:2px;">${content}</div></div>`;
     },
 
     renderMenu() {
@@ -317,7 +299,6 @@ window.app = {
         const days = ['周一','周二','周三','周四','周五'];
         document.getElementById('menuList').innerHTML = days.map((d,i) => `<div class="menu-item"><span class="menu-day">${d}</span><span>${menus[i]||'暂无'}</span></div>`).join('');
     },
-
     changeMonth(d) { let m=this.m+d, y=this.y; if(m>12){m=1;y++}if(m<1){m=12;y--} this.y=y;this.m=m; this.render(); },
     goToday() { this.y=new Date().getFullYear(); this.m=new Date().getMonth()+1; this.render(); }
 };

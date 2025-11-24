@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>后台管理系统 (V35 Stable)</title>
+    <title>后台管理系统 (V36 Stable)</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <style>
         :root { 
@@ -219,7 +219,7 @@
 </div>
 
 <div id="swapModal" class="modal-overlay"><div class="modal-box"><h3 style="margin-top:0;">换班调整</h3><input type="hidden" id="swapDate"><input type="hidden" id="swapIsHoliday"><div style="background:#fff7ed; padding:10px; border-radius:6px; margin-bottom:10px;"><div style="font-size:11px; color:#c2410c; font-weight:bold; margin-bottom:5px;">备勤推荐</div><div id="standbyPool" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:5px;"></div></div><label>带班</label><select id="swL"></select><label>女值</label><select id="swF"></select><label>男值</label><select id="swM"></select><label>备注</label><textarea id="swR" rows="2"></textarea><div style="display:flex; gap:10px; margin-top:10px;"><button style="flex:1" onclick="document.getElementById('swapModal').style.display='none'">取消</button><button class="primary" style="flex:1" onclick="app.saveSwap()">确定</button></div></div></div>
-<div id="editModal" class="modal-overlay"><div class="modal-box"><h3 style="margin-top:0;">编辑人员</h3><input type="hidden" id="edId"><input type="hidden" id="edType"><label>姓名</label><input id="edName"><div id="leaderFields" style="display:none; gap:10px;"><div style="flex:1"><label>职务</label><input id="edJob"></div><div style="flex:1"><label>座机</label><input id="edLand"></div></div><label>手机</label><input id="edPhone"><div style="background:#f1f5f9; padding:10px; border-radius:6px; margin:10px 0;"><label style="color:#dc2626; font-size:12px;">轮空期 (不排班时间段)</label><div id="skipList" style="margin-bottom:5px;"></div><div style="display:flex; gap:5px;"><input type="date" id="skipStart" style="margin:0;"><input type="date" id="skipEnd" style="margin:0;"><button class="danger" style="padding:4px 8px;" onclick="app.addSkip()">+</button></div></div><div style="display:flex; gap:10px; margin-top:10px;"><button style="flex:1" onclick="document.getElementById('editModal').style.display='none'">取消</button><button class="primary" style="flex:1" onclick="app.savePerson()">保存</button></div></div></div>
+<div id="editModal" class="modal-overlay"><div class="modal-box"><h3 style="margin-top:0;">编辑人员</h3><input type="hidden" id="edId"><input type="hidden" id="edType"><label>姓名</label><input id="edName"><div id="leaderFields" style="display:none; gap:10px;"><div style="flex:1"><label>职务</label><input id="edJob"></div><div style="flex:1"><label>座机</label><input id="edLand"></div></div><label>手机</label><input id="edPhone"><div style="background:#f1f5f9; padding:10px; border-radius:6px; margin:10px 0;"><label style="color:#dc2626; font-size:12px;">轮空期 (在此期间不排班)</label><div id="skipList" style="margin-bottom:5px;"></div><div style="display:flex; gap:5px;"><input type="date" id="skipStart" style="margin:0;"><input type="date" id="skipEnd" style="margin:0;"><button class="danger" style="padding:4px 8px;" onclick="app.addSkip()">+</button></div></div><div style="display:flex; gap:10px; margin-top:10px;"><button style="flex:1" onclick="document.getElementById('editModal').style.display='none'">取消</button><button class="primary" style="flex:1" onclick="app.savePerson()">保存</button></div></div></div>
 
 <script>
 window.app = {
@@ -243,8 +243,8 @@ window.app = {
             if(j.role==='admin') {
                 this.token = p;
                 if(j.data) this.data = {...this.data, ...j.data};
-                // 核心修复：登录时强制清洗所有人员的 skips 数组，断开引用链
-                this.sanitizeData();
+                // 核心修复：登录时运行数据清洗，断开引用
+                this.sanitizeData(); 
                 this.initDataSafe();
                 document.getElementById('loginLayer').style.display='none';
                 this.renderCal(); this.renderPersonList(); this.renderHoliday(); this.fillSelects(); this.renderLogs();
@@ -254,12 +254,13 @@ window.app = {
         } catch(e) { alert('网络连接失败'); }
     },
     
-    // 强制断开引用
+    // 核心修复：数据清洗函数，断开引用链
     sanitizeData() {
-        ['leader','female','male'].forEach(t => {
-            if(this.data.personnel[t]) {
-                this.data.personnel[t].forEach(p => {
-                    if(p.skips) p.skips = JSON.parse(JSON.stringify(p.skips));
+        ['leader', 'female', 'male'].forEach(type => {
+            if (this.data.personnel[type]) {
+                this.data.personnel[type].forEach(p => {
+                    // 强制深拷贝 skips 数组，防止一人悬停全员生效
+                    p.skips = p.skips ? JSON.parse(JSON.stringify(p.skips)) : [];
                 });
             }
         });
@@ -309,7 +310,7 @@ window.app = {
     clearNotice() { document.getElementById('noticeInput').value=""; this.saveNotice(); },
     deleteCurrentMonth() { if(!confirm(`删除本月数据？`)) return; const p=`${this.vy}-${String(this.vm).padStart(2,'0')}`; Object.keys(this.data.schedules).forEach(k=>{if(k.startsWith(p))delete this.data.schedules[k]}); this.save(); this.renderCal(); this.log('删除月度', p); },
     
-    // 修复：导出 Excel 字段补全
+    // 修复：导出 Excel 字段全量补全
     downloadMonth() {
         const mKey=`${this.vy}-${String(this.vm).padStart(2,'0')}`, rows=[];
         const days=new Date(this.vy, this.vm, 0).getDate();
@@ -323,9 +324,9 @@ window.app = {
                 rows.push({
                     "日期":ds,
                     "带班领导":v.leader,
-                    "带班领导职务": lInfo.job || '',
-                    "带班领导座机": lInfo.landline || '',
-                    "带班领导手机": lInfo.phone || '',
+                    "职务": lInfo.job || '',
+                    "座机": lInfo.landline || '',
+                    "手机": lInfo.phone || '',
                     "女值班员":v.female,
                     "男值班员":v.male,
                     "备注":v.remark
@@ -455,7 +456,7 @@ window.app = {
         const p=i!==null?this.data.personnel[t][i]:{name:'',phone:'',job:'',landline:'',remark:'',skips:[]};
         document.getElementById('edName').value=p.name; document.getElementById('edPhone').value=p.phone||'';
         document.getElementById('edJob').value=p.job||''; document.getElementById('edLand').value=p.landline||'';
-        // 核心修复：深拷贝
+        // 核心修复：编辑时深拷贝
         this.tempSkips = JSON.parse(JSON.stringify(p.skips || []));
         this.renderSkips();
     },
@@ -466,11 +467,11 @@ window.app = {
         if(!confirm("确认保存人员信息变更？")) return;
         const t=document.getElementById('edType').value, id=document.getElementById('edId').value, n=document.getElementById('edName').value;
         if(!n)return;
-        // 核心修复：保存时深拷贝 + 保存备注
+        // 核心修复：保存时深拷贝 + 备注补全
         const p={
             name:n, 
             phone:document.getElementById('edPhone').value, 
-            remark:document.getElementById('edRem').value, // 修复备注丢失
+            remark:document.getElementById('edRem').value,
             skips: JSON.parse(JSON.stringify(this.tempSkips))
         };
         if(t==='leader'){ p.job=document.getElementById('edJob').value; p.landline=document.getElementById('edLand').value; }
@@ -488,6 +489,7 @@ window.app = {
         let iw=getI('slW','leader'), ih=getI('slH','leader'), ife=getI('sf','female'), ima=getI('sm','male');
         const pL=this.data.personnel.leader, pF=this.data.personnel.female, pM=this.data.personnel.male;
         
+        // 核心逻辑：轮空检查 (日期字符串比对)
         const isSkipped = (p, dateStr) => (p.skips||[]).some(s => dateStr >= s.start && dateStr <= s.end);
         
         const pick=(list, start, dateStr)=>{
@@ -495,6 +497,9 @@ window.app = {
             while(cnt<list.length){ 
                 const p=list[c%list.length]; 
                 if(!isSkipped(p, dateStr)) return {name:p.name, next:(c+1)%list.length}; 
+                
+                // 只有被跳过才记录日志
+                this.log('生成跳过', `${dateStr} 跳过 ${p.name} (轮空期)`);
                 c++; cnt++; 
             } 
             return {name:'无可用', next:c};

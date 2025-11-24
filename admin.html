@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>后台管理系统 (V30 Pro)</title>
+    <title>后台管理系统 (V31 Pro Fixed)</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <style>
         :root { 
@@ -56,14 +56,8 @@
         .modal-box { background: white; padding: 20px; border-radius: 12px; width: 450px; max-width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
         #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #064e3b; color: white; padding: 10px 20px; border-radius: 30px; font-size: 13px; font-weight: 500; display: none; z-index: 2000; }
         .suspended-row { color: #94a3b8; background: #f8fafc; }
-        
-        /* 实验室开关样式 */
         .lab-switch-item { display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #e2e8f0; }
-        .switch-label { font-weight: 600; }
-        
-        /* 菜谱编辑 */
         .menu-day { border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px; }
-        .menu-day label { font-size: 12px; color: #64748b; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -79,7 +73,7 @@
 </div>
 
 <div class="top-bar">
-    <div class="app-title">⚙️ 值班管理控制台 <span style="font-size:11px; background:#e0e7ff; padding:2px 6px; border-radius:4px;">V30 Pro</span></div>
+    <div class="app-title">⚙️ 值班管理控制台 <span style="font-size:11px; background:#e0e7ff; padding:2px 6px; border-radius:4px;">V31 Pro</span></div>
     <button class="danger" onclick="location.reload()">🔒 安全退出</button>
 </div>
 
@@ -104,8 +98,10 @@
         <div class="tabs">
             <div class="tab active" onclick="app.tab('t-rules')">⚡ 规则</div>
             <div class="tab" onclick="app.tab('t-person')">👥 人员</div>
+            <div class="tab" onclick="app.tab('t-holiday')">📅 假日</div>
             <div class="tab" onclick="app.tab('t-lab')">🧪 实验室</div>
             <div class="tab" onclick="app.tab('t-data')">💾 数据</div>
+            <div class="tab" onclick="app.tab('t-logs')">📜 日志</div>
         </div>
 
         <div class="tab-content">
@@ -144,106 +140,69 @@
                 <div id="personList"></div>
             </div>
 
-            <div id="t-lab" class="tab-pane">
-                <h4>🔧 实验室功能配置</h4>
-                
-                <div class="lab-switch-item">
-                    <span class="switch-label">🔍 值班查询</span>
-                    <input type="checkbox" id="sw_query" onchange="app.saveLabConfig()">
+            <div id="t-holiday" class="tab-pane">
+                <div style="display:flex; gap:5px; margin-bottom:10px;">
+                    <input type="number" id="hYear" style="width:70px" onchange="app.renderHoliday()">
+                    <input type="date" id="hStart" style="flex:1">
+                    <input type="date" id="hEnd" style="flex:1">
                 </div>
-                <div class="lab-switch-item">
-                    <span class="switch-label">🍱 每周菜谱</span>
-                    <input type="checkbox" id="sw_menu" onchange="app.saveLabConfig()">
-                </div>
-                <div class="lab-switch-item">
-                    <span class="switch-label">🔮 值班预估 (测试版)</span>
-                    <input type="checkbox" id="sw_predict" onchange="app.saveLabConfig()">
-                </div>
+                <button class="primary" style="width:100%; margin-bottom:15px;" onclick="app.addHolidayRange()">+ 添加假日区间</button>
+                <div id="holidayChips" style="display:flex; flex-wrap:wrap; gap:5px;"></div>
+            </div>
 
-                <hr style="margin:20px 0; border:0; border-top:1px dashed #ccc;">
-                
-                <h4>📝 菜谱编辑 (周一至周五)</h4>
-                <div id="menuEditor">
-                    </div>
-                <button class="primary" style="width:100%" onclick="app.saveLabConfig()">💾 保存实验室配置</button>
+            <div id="t-lab" class="tab-pane">
+                <h4>🔧 实验室功能开关</h4>
+                <div class="lab-switch-item"><span>🔍 值班查询</span><input type="checkbox" id="sw_query" onchange="app.saveLabConfig()"></div>
+                <div class="lab-switch-item"><span>🍱 每周菜谱</span><input type="checkbox" id="sw_menu" onchange="app.saveLabConfig()"></div>
+                <div class="lab-switch-item"><span>🔮 值班预估</span><input type="checkbox" id="sw_predict" onchange="app.saveLabConfig()"></div>
+                <hr>
+                <h4>📝 菜谱编辑</h4>
+                <div id="menuEditor"></div>
+                <button class="primary" style="width:100%" onclick="app.saveLabConfig()">💾 保存配置</button>
             </div>
 
             <div id="t-data" class="tab-pane">
                 <h4>🔐 修改密码</h4>
                 <div style="display:flex; gap:5px;">
-                    <input id="newAdmin" placeholder="新·管理密码">
-                    <button class="primary" onclick="app.changePass('admin')">改</button>
+                    <input id="newAdmin" placeholder="新·管理密码"><button class="primary" onclick="app.changePass('admin')">改</button>
                 </div>
                 <div style="display:flex; gap:5px; margin-top:5px;">
-                    <input id="newView" placeholder="新·查看密码">
-                    <button class="primary" onclick="app.changePass('view')">改</button>
+                    <input id="newView" placeholder="新·查看密码"><button class="primary" onclick="app.changePass('view')">改</button>
                 </div>
                 
-                <h4 style="margin-top:20px;">💾 数据维护</h4>
-                <button class="success" style="width:100%; margin-bottom:5px;" onclick="app.exportData()">⬇ 备份全量数据</button>
+                <h4 style="margin-top:20px;">💾 数据备份与恢复 (已修复)</h4>
+                <button class="success" style="width:100%; margin-bottom:5px;" onclick="app.exportData()">⬇ 备份全量数据 (.json)</button>
+                <div style="display:flex; gap:5px; margin-bottom:15px;">
+                    <input type="file" id="upJson" hidden onchange="app.importGlobalData(this)">
+                    <button style="width:100%" onclick="document.getElementById('upJson').click()">📤 恢复备份文件</button>
+                </div>
+
                 <div style="border-top:1px dashed #ccc; margin:15px 0; padding-top:15px;">
                     <label>📅 导入历史值班表</label>
                     <input type="file" id="upHist" hidden onchange="app.importHistory(this)">
                     <button style="width:100%" onclick="document.getElementById('upHist').click()">⬆ 上传历史 Excel</button>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
-
-<div id="swapModal" class="modal-overlay">
-    <div class="modal-box">
-        <h3 style="margin-top:0;" id="swapTitle">换班调整</h3>
-        <input type="hidden" id="swapDate">
-        <input type="hidden" id="swapIsHoliday">
-        <div style="background:#fff7ed; padding:10px; border-radius:6px; margin-bottom:10px;">
-            <div style="font-size:11px; color:#c2410c; font-weight:bold; margin-bottom:5px;">🚑 备勤推荐</div>
-            <div id="standbyPool" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:5px;"></div>
-        </div>
-        <label>带班</label><select id="swL"></select>
-        <label>女值</label><select id="swF"></select>
-        <label>男值</label><select id="swM"></select>
-        <label>备注</label><textarea id="swR" rows="2"></textarea>
-        <div style="display:flex; gap:10px; margin-top:10px;">
-            <button style="flex:1" onclick="document.getElementById('swapModal').style.display='none'">取消</button>
-            <button class="primary" style="flex:1" onclick="app.saveSwap()">确定</button>
-        </div>
-    </div>
-</div>
-
-<div id="editModal" class="modal-overlay">
-    <div class="modal-box">
-        <h3 style="margin-top:0;">编辑人员</h3>
-        <input type="hidden" id="edId"><input type="hidden" id="edType">
-        
-        <label>姓名</label><input id="edName">
-        <div id="leaderFields" style="display:none; gap:10px;">
-            <div style="flex:1"><label>职务</label><input id="edJob"></div>
-            <div style="flex:1"><label>座机</label><input id="edLand"></div>
-        </div>
-        <label>手机</label><input id="edPhone">
-        
-        <div style="background:#f1f5f9; padding:10px; border-radius:6px; margin:10px 0;">
-            <label style="color:#dc2626; font-size:12px;">⛔ 轮空期 (在此期间不排班)</label>
-            <div id="skipList" style="margin-bottom:5px;"></div>
-            <div style="display:flex; gap:5px;">
-                <input type="date" id="skipStart" style="margin:0;">
-                <input type="date" id="skipEnd" style="margin:0;">
-                <button class="danger" style="padding:4px 8px;" onclick="app.addSkip()">+</button>
+            
+            <div id="t-logs" class="tab-pane">
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                    <strong>操作日志</strong><button class="danger" style="padding:2px 8px;" onclick="app.clearLogs()">清空</button>
+                </div>
+                <div class="table-container" style="max-height:500px; overflow-y:auto;">
+                    <table id="logTable"><tbody></tbody></table>
+                </div>
             </div>
         </div>
-
-        <div style="display:flex; gap:10px; margin-top:10px;">
-            <button style="flex:1" onclick="document.getElementById('editModal').style.display='none'">取消</button>
-            <button class="primary" style="flex:1" onclick="app.savePerson()">保存</button>
-        </div>
     </div>
 </div>
+
+<div id="swapModal" class="modal-overlay"><div class="modal-box"><h3 style="margin-top:0;" id="swapTitle">换班调整</h3><input type="hidden" id="swapDate"><input type="hidden" id="swapIsHoliday"><div style="background:#fff7ed; padding:10px; border-radius:6px; margin-bottom:10px;"><div style="font-size:11px; color:#c2410c; font-weight:bold; margin-bottom:5px;">🚑 备勤推荐</div><div id="standbyPool" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:5px;"></div></div><label>带班</label><select id="swL"></select><label>女值</label><select id="swF"></select><label>男值</label><select id="swM"></select><label>备注</label><textarea id="swR" rows="2"></textarea><div style="display:flex; gap:10px; margin-top:10px;"><button style="flex:1" onclick="document.getElementById('swapModal').style.display='none'">取消</button><button class="primary" style="flex:1" onclick="app.saveSwap()">确定</button></div></div></div>
+<div id="editModal" class="modal-overlay"><div class="modal-box"><h3 style="margin-top:0;">编辑人员</h3><input type="hidden" id="edId"><input type="hidden" id="edType"><label>姓名</label><input id="edName"><div id="leaderFields" style="display:none; gap:10px;"><div style="flex:1"><label>职务</label><input id="edJob"></div><div style="flex:1"><label>座机</label><input id="edLand"></div></div><label>手机</label><input id="edPhone"><div style="background:#f1f5f9; padding:10px; border-radius:6px; margin:10px 0;"><label style="color:#dc2626; font-size:12px;">⛔ 轮空期</label><div id="skipList" style="margin-bottom:5px;"></div><div style="display:flex; gap:5px;"><input type="date" id="skipStart" style="margin:0;"><input type="date" id="skipEnd" style="margin:0;"><button class="danger" style="padding:4px 8px;" onclick="app.addSkip()">+</button></div></div><div style="display:flex; gap:10px; margin-top:10px;"><button style="flex:1" onclick="document.getElementById('editModal').style.display='none'">取消</button><button class="primary" style="flex:1" onclick="app.savePerson()">保存</button></div></div></div>
 
 <script>
 window.app = {
     api: '/api', token: null,
-    data: { personnel:{leader:[],female:[],male:[]}, holidays:{}, schedules:{}, labConfig:{}, notice:"" },
+    data: { personnel:{leader:[],female:[],male:[]}, holidays:{}, schedules:{}, labConfig:{}, logs:[] },
     vy: new Date().getFullYear(), vm: new Date().getMonth()+1,
     tempSkips: [], currentOrigin: {},
 
@@ -264,7 +223,7 @@ window.app = {
                 if(j.data) this.data = {...this.data, ...j.data};
                 this.initDataSafe();
                 document.getElementById('loginLayer').style.display='none';
-                this.renderCal(); this.renderPersonList(); this.renderHoliday(); this.fillSelects();
+                this.renderCal(); this.renderPersonList(); this.renderHoliday(); this.fillSelects(); this.renderLogs();
                 document.getElementById('noticeInput').value = this.data.notice || '';
                 this.initLabConfig();
             } else alert('密码错误');
@@ -275,12 +234,13 @@ window.app = {
         ['leader','female','male'].forEach(k=>{if(!this.data.personnel[k])this.data.personnel[k]=[]});
         if(!this.data.holidays) this.data.holidays={};
         if(!this.data.schedules) this.data.schedules={};
+        if(!this.data.logs) this.data.logs=[];
         if(!this.data.labConfig) this.data.labConfig={switches:{query:true,menu:true,predict:true}, menus:['','','','','']};
     },
 
-    // --- Core ---
     async save() { try { await fetch(this.api, {method:'POST', body:JSON.stringify({action:'save', password:this.token, newData:this.data})}); } catch(e){} },
     toast(m) { const t=document.getElementById('toast'); t.innerText=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2000); },
+    log(act, det) { this.data.logs.unshift({t:new Date().toLocaleString(), a:act, d:det}); if(this.data.logs.length>300)this.data.logs.pop(); this.save(); this.renderLogs(); },
     
     // --- Lab Config ---
     initLabConfig() {
@@ -289,64 +249,34 @@ window.app = {
         document.getElementById('sw_query').checked = s.query;
         document.getElementById('sw_menu').checked = s.menu;
         document.getElementById('sw_predict').checked = s.predict;
-        
         const menus = c.menus || ['','','','',''];
-        menus.forEach((m,i) => {
-            const el = document.getElementById(`menu_d${i+1}`);
-            if(el) el.value = m;
-        });
+        menus.forEach((m,i) => { const el = document.getElementById(`menu_d${i+1}`); if(el) el.value = m; });
     },
     renderMenuEditor() {
         const days = ['周一','周二','周三','周四','周五'];
-        document.getElementById('menuEditor').innerHTML = days.map((d,i) => `
-            <div class="menu-day">
-                <label>${d}</label>
-                <input id="menu_d${i+1}" placeholder="例如：红烧肉、白菜、米饭...">
-            </div>
-        `).join('');
+        document.getElementById('menuEditor').innerHTML = days.map((d,i) => `<div class="menu-day"><label>${d}</label><input id="menu_d${i+1}" placeholder="菜谱..."></div>`).join('');
     },
     async saveLabConfig() {
-        const switches = {
-            query: document.getElementById('sw_query').checked,
-            menu: document.getElementById('sw_menu').checked,
-            predict: document.getElementById('sw_predict').checked
-        };
+        const switches = { query: document.getElementById('sw_query').checked, menu: document.getElementById('sw_menu').checked, predict: document.getElementById('sw_predict').checked };
         const menus = [1,2,3,4,5].map(i => document.getElementById(`menu_d${i}`).value);
-        
         this.data.labConfig = { switches, menus };
-        await this.save();
-        this.toast("🧪 实验室配置已保存");
+        await this.save(); this.toast("🧪 实验室配置已保存");
     },
 
     // --- Actions ---
-    async publishSchedule() { await this.save(); this.toast("✅ 排班已发布"); },
-    async saveNotice() { this.data.notice = document.getElementById('noticeInput').value; await this.save(); this.toast("✅ 公告已更新"); },
+    async publishSchedule() { await this.save(); this.log('发布排班', `${this.vy}-${this.vm}`); this.toast("✅ 排班已发布"); },
+    async saveNotice() { this.data.notice = document.getElementById('noticeInput').value; await this.save(); this.log('更新公告', this.data.notice); this.toast("✅ 公告已更新"); },
     clearNotice() { document.getElementById('noticeInput').value=""; this.saveNotice(); },
-
-    deleteCurrentMonth() {
-        if(!confirm(`⚠️ 删除 [${this.vy}年${this.vm}月] 数据？`)) return;
-        const prefix = `${this.vy}-${String(this.vm).padStart(2,'0')}`;
-        Object.keys(this.data.schedules).forEach(k => { if(k.startsWith(prefix)) delete this.data.schedules[k]; });
-        this.save(); this.renderCal(); this.toast(`已删除本月数据`);
-    },
+    deleteCurrentMonth() { if(!confirm(`删除本月数据？`)) return; const p=`${this.vy}-${String(this.vm).padStart(2,'0')}`; Object.keys(this.data.schedules).forEach(k=>{if(k.startsWith(p))delete this.data.schedules[k]}); this.save(); this.renderCal(); this.log('删除月度', p); },
     downloadMonth() {
-        const mKey = `${this.vy}-${String(this.vm).padStart(2,'0')}`;
-        const s = this.data.schedules, pl = this.data.personnel.leader;
-        const findL = (n) => pl.find(p => p.name === n) || {};
-        const rows = [];
-        const days = new Date(this.vy, this.vm, 0).getDate();
-        for(let d=1; d<=days; d++) {
-            const ds = `${mKey}-${String(d).padStart(2,'0')}`;
-            const val = s[ds];
-            if(val) {
-                const lInfo = findL(val.leader);
-                rows.push({ "日期": ds, "带班领导": val.leader, "职务": lInfo.job||'', "座机": lInfo.landline||'', "手机": lInfo.phone||'', "女值班员": val.female, "男值班员": val.male, "备注": val.remark });
-            }
+        const mKey=`${this.vy}-${String(this.vm).padStart(2,'0')}`, rows=[];
+        const days=new Date(this.vy, this.vm, 0).getDate();
+        for(let d=1;d<=days;d++){
+            const ds=`${mKey}-${String(d).padStart(2,'0')}`, v=this.data.schedules[ds];
+            if(v) rows.push({"日期":ds,"带班领导":v.leader,"女值班员":v.female,"男值班员":v.male,"备注":v.remark});
         }
-        if(!rows.length) return alert("该月无数据");
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), "值班表");
-        XLSX.writeFile(wb, `值班表_${mKey}.xlsx`);
+        if(!rows.length)return alert('无数据');
+        XLSX.writeFile(XLSX.utils.book_new(XLSX.utils.json_to_sheet(rows)), `值班表_${mKey}.xlsx`);
     },
 
     // --- Calendar ---
@@ -372,13 +302,11 @@ window.app = {
     // --- Swap ---
     openSwap(ds, isH) {
         document.getElementById('swapModal').style.display='flex';
-        document.getElementById('swapDate').value=ds;
-        document.getElementById('swapIsHoliday').value = isH;
+        document.getElementById('swapDate').value=ds; document.getElementById('swapIsHoliday').value=isH;
         const s = this.data.schedules[ds] || {leader:'', female:'', male:'', remark:''};
         this.currentOrigin = {...s};
-
         const fill = (id, t, v) => {
-            const list = this.data.personnel[t]; // 不过滤，显示所有人以便选择
+            const list = this.data.personnel[t];
             let html = `<option value="">(空)</option>`;
             if(v && !list.find(p=>p.name===v)) html += `<option value="${v}" selected>${v} (历史)</option>`;
             html += list.map(p => `<option value="${p.name}" ${p.name===v?'selected':''}>${p.name}</option>`).join('');
@@ -395,23 +323,16 @@ window.app = {
         const hlKey = String(y); const hList = this.data.holidays[hlKey] || [];
         let lastL_W=null, lastL_H=null, lastF=null, lastM=null;
         dates.forEach(d => {
-            const s = this.data.schedules[d];
-            const isH = hList.includes(d);
+            const s = this.data.schedules[d], isH = hList.includes(d);
             if(isH) lastL_H = s.leader; else lastL_W = s.leader;
             lastF = s.female; lastM = s.male;
         });
         const targetLastLeader = isTargetHoliday ? lastL_H : lastL_W;
-        
         const getNext4 = (type, lastVal) => {
-            const list = this.data.personnel[type];
-            if(!list.length) return [];
+            const list = this.data.personnel[type]; if(!list.length) return [];
             let startIdx = 0;
-            if(lastVal) {
-                const idx = list.findIndex(p => p.name === lastVal);
-                if(idx !== -1) startIdx = (idx + 1) % list.length;
-            }
-            const res = []; for(let i=0; i<4; i++) res.push(list[(startIdx + i) % list.length]);
-            return res;
+            if(lastVal) { const idx = list.findIndex(p => p.name === lastVal); if(idx !== -1) startIdx = (idx + 1) % list.length; }
+            const res = []; for(let i=0; i<4; i++) res.push(list[(startIdx + i) % list.length]); return res;
         };
         const lList = getNext4('leader', targetLastLeader);
         const fList = getNext4('female', lastF);
@@ -419,15 +340,11 @@ window.app = {
         const addB=(p, t, pf)=>{
             const b=document.createElement('button'); b.innerText=pf+p.name; b.className='success'; b.style.padding='4px'; b.style.fontSize='11px';
             b.onclick=()=>{ 
-                if(t==='l')document.getElementById('swL').value=p.name; 
-                if(t==='f')document.getElementById('swF').value=p.name; 
-                if(t==='m')document.getElementById('swM').value=p.name;
+                if(t==='l')document.getElementById('swL').value=p.name; if(t==='f')document.getElementById('swF').value=p.name; if(t==='m')document.getElementById('swM').value=p.name;
                 const oldName = t==='l'?this.currentOrigin.leader : (t==='f'?this.currentOrigin.female:this.currentOrigin.male);
                 if(oldName && oldName !== p.name) {
-                    const tag = `【备】${oldName}→${p.name}`;
-                    let r = document.getElementById('swR').value;
-                    if(!r.includes(tag)) r = r ? (r+' '+tag) : tag;
-                    document.getElementById('swR').value = r;
+                    const tag = `【备】${oldName}→${p.name}`; let r = document.getElementById('swR').value;
+                    if(!r.includes(tag)) r = r ? (r+' '+tag) : tag; document.getElementById('swR').value = r;
                 }
             }; pool.appendChild(b);
         };
@@ -443,37 +360,19 @@ window.app = {
         check(old.leader, nL); check(old.female, nF); check(old.male, nM);
         if(changes.length>0) { const tag = `【换】${changes.join(' ')}`; r = r ? (r+' '+tag) : tag; }
         this.data.schedules[ds]={leader:nL, female:nF, male:nM, remark:r};
-        this.save(); this.renderCal(); document.getElementById('swapModal').style.display='none';
+        this.log('换班', ds); this.save(); this.renderCal(); document.getElementById('swapModal').style.display='none';
     },
 
-    // --- Person & Skip Logic ---
+    // --- Person ---
     renderPersonList() {
         const t=document.getElementById('manageType').value, l=this.data.personnel[t];
         let h=`<div class="table-container"><table><thead><tr><th>姓名</th>${t==='leader'?'<th>职务</th><th>座机</th>':''}<th>手机</th><th>操作</th></tr></thead><tbody>`;
         l.forEach((p,i)=>{
-            // 检查是否有有效的轮空期
-            const hasActiveSkip = (p.skips||[]).some(s => {
-                const now = new Date().toISOString().split('T')[0];
-                return s.end >= now; 
-            });
-            
-            h+=`<tr class="${hasActiveSkip?'suspended-row':''}">
-                <td>${p.name}${hasActiveSkip?' <small>(休假中)</small>':''}</td>
-                ${t==='leader'?`<td>${p.job||'-'}</td><td>${p.landline||'-'}</td>`:''}
-                <td>${p.phone||'-'}</td>
-                <td>
-                    <button class="icon-btn" onclick="app.movePerson('${t}',${i},-1)">↑</button>
-                    <button class="icon-btn" onclick="app.movePerson('${t}',${i},1)">↓</button>
-                    <button class="icon-btn" onclick="app.editPerson(${i})">✎</button> 
-                    <button class="icon-btn" style="color:red" onclick="app.delPerson('${t}',${i})">×</button>
-                </td></tr>`;
+            const hasActiveSkip = (p.skips||[]).some(s => { const now = new Date().toISOString().split('T')[0]; return s.end >= now; });
+            h+=`<tr class="${hasActiveSkip?'suspended-row':''}"><td>${p.name}${hasActiveSkip?' <small>(休假)</small>':''}</td>${t==='leader'?`<td>${p.job||'-'}</td><td>${p.landline||'-'}</td>`:''}<td>${p.phone||'-'}</td><td><button onclick="app.editPerson(${i})">✎</button> <button class="danger" onclick="app.delPerson('${t}',${i})">×</button></td></tr>`;
         });
         document.getElementById('personList').innerHTML=h+`</tbody></table></div>`;
         this.fillSelects();
-    },
-    movePerson(t, i, d) {
-        const l = this.data.personnel[t], dest = i + d;
-        if (dest >= 0 && dest < l.length) { [l[i], l[dest]] = [l[dest], l[i]]; this.save(); this.renderPersonList(); }
     },
     editPerson(i=null) {
         const t=document.getElementById('manageType').value;
@@ -481,33 +380,22 @@ window.app = {
         document.getElementById('edType').value=t; document.getElementById('edId').value=i!==null?i:'new';
         document.getElementById('leaderFields').style.display=t==='leader'?'flex':'none';
         const p=i!==null?this.data.personnel[t][i]:{name:'',phone:'',job:'',landline:'',remark:'',skips:[]};
-        document.getElementById('edName').value=p.name; document.getElementById('edPhone').value=p.phone;
+        document.getElementById('edName').value=p.name; document.getElementById('edPhone').value=p.phone||'';
         document.getElementById('edJob').value=p.job||''; document.getElementById('edLand').value=p.landline||'';
-        document.getElementById('edRem').value=p.remark||'';
-        this.tempSkips = [...(p.skips||[])];
-        this.renderSkips();
+        this.tempSkips = [...(p.skips||[])]; this.renderSkips();
     },
-    addSkip() {
-        const s=document.getElementById('skipStart').value, e=document.getElementById('skipEnd').value;
-        if(s&&e) { this.tempSkips.push({start:s, end:e}); this.renderSkips(); }
-    },
-    renderSkips() {
-        document.getElementById('skipList').innerHTML = this.tempSkips.map((s,i) => 
-            `<span style="background:#fee2e2; padding:2px 5px; border-radius:4px; font-size:11px; margin-right:5px;">${s.start}~${s.end} <b style="cursor:pointer" onclick="app.removeSkip(${i})">×</b></span>`
-        ).join('');
-    },
+    addSkip() { const s=document.getElementById('skipStart').value, e=document.getElementById('skipEnd').value; if(s&&e) { this.tempSkips.push({start:s, end:e}); this.renderSkips(); } },
+    renderSkips() { document.getElementById('skipList').innerHTML = this.tempSkips.map((s,i) => `<span style="background:#fee2e2; padding:2px 5px; border-radius:4px; font-size:11px; margin-right:5px;">${s.start}~${s.end} <b style="cursor:pointer" onclick="app.removeSkip(${i})">×</b></span>`).join(''); },
     removeSkip(i) { this.tempSkips.splice(i,1); this.renderSkips(); },
     savePerson() {
         const t=document.getElementById('edType').value, id=document.getElementById('edId').value, n=document.getElementById('edName').value;
         if(!n)return;
-        const p={name:n, phone:document.getElementById('edPhone').value, remark:document.getElementById('edRem').value, skips:this.tempSkips};
+        const p={name:n, phone:document.getElementById('edPhone').value, skips:this.tempSkips};
         if(t==='leader'){ p.job=document.getElementById('edJob').value; p.landline=document.getElementById('edLand').value; }
         if(id==='new') this.data.personnel[t].push(p); else this.data.personnel[t][id]=p;
-        this.save(); this.renderPersonList(); document.getElementById('editModal').style.display='none';
+        this.log('编辑人员', `${t}:${n}`); this.save(); this.renderPersonList(); document.getElementById('editModal').style.display='none';
     },
-    delPerson(t,i) { if(confirm('删除?')) { this.data.personnel[t].splice(i,1); this.save(); this.renderPersonList(); } },
-
-    // --- Gen (With Time Skip) ---
+    delPerson(t,i) { if(confirm('删除?')) { this.data.personnel[t].splice(i,1); this.log('删除人员', t); this.save(); this.renderPersonList(); } },
     fillSelects() { const f=(id,t)=>document.getElementById(id).innerHTML=this.data.personnel[t].map(p=>`<option value="${p.name}">${p.name}</option>`).join(''); f('slW','leader');f('slH','leader');f('sf','female');f('sm','male'); },
     generate() {
         const ms=document.getElementById('genMonth').value; if(!ms)return alert('选月份');
@@ -515,36 +403,29 @@ window.app = {
         const getI=(id,t)=>{const n=document.getElementById(id).value; return Math.max(0,(this.data.personnel[t]||[]).findIndex(p=>p.name===n))};
         let iw=getI('slW','leader'), ih=getI('slH','leader'), ife=getI('sf','female'), ima=getI('sm','male');
         const pL=this.data.personnel.leader, pF=this.data.personnel.female, pM=this.data.personnel.male;
-        
-        // 核心：检查某人某天是否轮空
         const isSkipped = (p, dateStr) => (p.skips||[]).some(s => dateStr >= s.start && dateStr <= s.end);
-
         const pick=(list, start, dateStr)=>{
             let c=start, cnt=0; 
-            while(cnt<list.length){ 
-                const p=list[c%list.length]; 
-                if(!isSkipped(p, dateStr)) return {name:p.name, next:(c+1)%list.length}; 
-                c++; cnt++; 
-            } 
+            while(cnt<list.length){ const p=list[c%list.length]; if(!isSkipped(p, dateStr)) return {name:p.name, next:(c+1)%list.length}; c++; cnt++; } 
             return {name:'无可用', next:c};
         };
-
-        if(!pL.length||!pF.length||!pM.length) return alert('人员不足');
+        if(!pL.length) return alert('人员不足');
         for(let d=1;d<=days;d++) {
             const ds=`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`, isH=hl.includes(ds);
             let l; if(isH){ const r=pick(pL,ih,ds); l=r.name; ih=r.next; } else { const r=pick(pL,iw,ds); l=r.name; iw=r.next; }
             const f=pick(pF,ife,ds); ife=f.next; const ma=pick(pM,ima,ds); ima=ma.next;
             this.data.schedules[ds]={leader:l, female:f.name, male:ma.name, remark:''};
         }
-        this.save(); this.renderCal(); this.toast('⚡ 生成完毕');
+        this.log('排班生成', ms); this.save(); this.renderCal(); this.toast('⚡ 生成完毕');
     },
-
-    // --- Holiday ---
     renderHoliday() { const y=document.getElementById('hYear').value, l=this.data.holidays[y]||[]; document.getElementById('holidayChips').innerHTML=l.sort().map(d=>`<div style="background:white;border:1px solid #f87171;padding:2px 6px;border-radius:4px;font-size:11px;color:#dc2626;">${d.substring(5)} <span onclick="app.delHoliday('${y}','${d}')" style="cursor:pointer;font-weight:bold">&times;</span></div>`).join(''); },
-    addHolidayRange() { const y=document.getElementById('hYear').value, s=document.getElementById('hStart').value, e=document.getElementById('hEnd').value; if(!s||!e)return; let d=new Date(s), en=new Date(e), c=0; if(!this.data.holidays[y])this.data.holidays[y]=[]; while(d<=en){ const k=d.toISOString().slice(0,10); if(!this.data.holidays[y].includes(k)){this.data.holidays[y].push(k);c++} d.setDate(d.getDate()+1); } this.save(); this.renderHoliday(); },
+    addHolidayRange() { const y=document.getElementById('hYear').value, s=document.getElementById('hStart').value, e=document.getElementById('hEnd').value; if(!s||!e)return; let d=new Date(s), en=new Date(e), c=0; if(!this.data.holidays[y])this.data.holidays[y]=[]; while(d<=en){ const k=d.toISOString().slice(0,10); if(!this.data.holidays[y].includes(k)){this.data.holidays[y].push(k);c++} d.setDate(d.getDate()+1); } this.log('添加假日', s); this.save(); this.renderHoliday(); },
     delHoliday(y,d) { this.data.holidays[y]=this.data.holidays[y].filter(x=>x!==d); this.save(); this.renderHoliday(); },
-    importHistory(inp) { const f=inp.files[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{ const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'}), rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]); let c=0; rows.forEach(row => { let d=row['日期']; if(typeof d==='number')d=new Date(Math.round((d-25569)*86400*1000)).toISOString().slice(0,10); if(d && d.match(/^\d{4}-\d{2}-\d{2}$/)) { this.data.schedules[d]={leader:row['带班领导']||'', female:row['女值班员']||'', male:row['男值班员']||'', remark:row['备注']||''}; c++; } }); this.save(); this.renderCal(); inp.value=''; this.toast(`导入 ${c} 条`); }; r.readAsArrayBuffer(f); },
+    importGlobalData(inp) { const f=inp.files[0]; const r=new FileReader(); r.onload=e=>{ try{this.data=JSON.parse(e.target.result);this.save();this.log('数据恢复','full backup');alert('恢复成功，即将刷新');location.reload();}catch(err){alert('格式错误');}}; r.readAsText(f); },
+    importHistory(inp) { const f=inp.files[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{ const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'}), rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]); let c=0; rows.forEach(row => { let d=row['日期']; if(typeof d==='number')d=new Date(Math.round((d-25569)*86400*1000)).toISOString().slice(0,10); if(d && d.match(/^\d{4}-\d{2}-\d{2}$/)) { this.data.schedules[d]={leader:row['带班领导']||'', female:row['女值班员']||'', male:row['男值班员']||'', remark:row['备注']||''}; c++; } }); this.log('历史导入', c); this.save(); this.renderCal(); inp.value=''; }; r.readAsArrayBuffer(f); },
     exportData() { const b=new Blob([JSON.stringify(this.data)],{type:'application/json'}), a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='backup.json'; a.click(); },
+    renderLogs() { const b=document.querySelector('#logTable tbody'); b.innerHTML=this.data.logs.map(l=>`<tr><td style="color:#666;font-size:11px;">${l.t}</td><td><strong>${l.a}</strong></td><td>${l.d}</td></tr>`).join(''); },
+    clearLogs() { this.data.logs=[]; this.save(); this.renderLogs(); },
     tab(id) { document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); event.currentTarget.classList.add('active'); document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); },
     changePass(type) { const v = type==='admin'?document.getElementById('newAdmin').value : document.getElementById('newView').value; if(!v) return; if(confirm(`修改${type==='admin'?'管理':'查看'}密码？`)) fetch(this.api, {method:'POST', body:JSON.stringify({action:'change_pass', password:this.token, [type==='admin'?'newAdminPass':'newViewPass']:v})}).then(()=>{alert('成功');}); }
 };

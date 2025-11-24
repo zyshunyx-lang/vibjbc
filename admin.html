@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>后台管理系统 (V34 Stable)</title>
+    <title>后台管理系统 (V35 Stable)</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <style>
         :root { 
@@ -131,7 +131,7 @@
                         <button onclick="app.clearNotice()">清空</button>
                     </div>
                 </div>
-                <h4>自动排班 (已修复悬停跳过)</h4>
+                <h4>自动排班 (含轮空过滤)</h4>
                 <label>带班 (工作日) 起始</label><select id="slW"></select>
                 <label>带班 (假日) 起始</label><select id="slH"></select>
                 <label>女值班员 起始</label><select id="sf"></select>
@@ -243,6 +243,8 @@ window.app = {
             if(j.role==='admin') {
                 this.token = p;
                 if(j.data) this.data = {...this.data, ...j.data};
+                // 核心修复：登录时强制清洗所有人员的 skips 数组，断开引用链
+                this.sanitizeData();
                 this.initDataSafe();
                 document.getElementById('loginLayer').style.display='none';
                 this.renderCal(); this.renderPersonList(); this.renderHoliday(); this.fillSelects(); this.renderLogs();
@@ -252,6 +254,17 @@ window.app = {
         } catch(e) { alert('网络连接失败'); }
     },
     
+    // 强制断开引用
+    sanitizeData() {
+        ['leader','female','male'].forEach(t => {
+            if(this.data.personnel[t]) {
+                this.data.personnel[t].forEach(p => {
+                    if(p.skips) p.skips = JSON.parse(JSON.stringify(p.skips));
+                });
+            }
+        });
+    },
+
     initDataSafe() {
         ['leader','female','male'].forEach(k=>{if(!this.data.personnel[k])this.data.personnel[k]=[]});
         if(!this.data.holidays) this.data.holidays={};
@@ -286,8 +299,13 @@ window.app = {
     },
 
     // --- Actions ---
-    async publishSchedule() { await this.save(); this.log('发布排班', `${this.vy}-${this.vm}`); this.toast("排班已发布"); },
-    async saveNotice() { this.data.notice = document.getElementById('noticeInput').value; await this.save(); this.log('更新公告', this.data.notice); this.toast("公告已更新"); },
+    async publishSchedule() { 
+        if(!confirm("确认发布排班表到前台吗？")) return;
+        await this.save(); 
+        this.log('发布排班', `${this.vy}-${this.vm}`); 
+        this.toast("✅ 排班已发布"); 
+    },
+    async saveNotice() { this.data.notice = document.getElementById('noticeInput').value; await this.save(); this.log('更新公告', this.data.notice); this.toast("✅ 公告已更新"); },
     clearNotice() { document.getElementById('noticeInput').value=""; this.saveNotice(); },
     deleteCurrentMonth() { if(!confirm(`删除本月数据？`)) return; const p=`${this.vy}-${String(this.vm).padStart(2,'0')}`; Object.keys(this.data.schedules).forEach(k=>{if(k.startsWith(p))delete this.data.schedules[k]}); this.save(); this.renderCal(); this.log('删除月度', p); },
     
@@ -305,9 +323,9 @@ window.app = {
                 rows.push({
                     "日期":ds,
                     "带班领导":v.leader,
-                    "职务": lInfo.job || '',
-                    "座机": lInfo.landline || '',
-                    "手机": lInfo.phone || '',
+                    "带班领导职务": lInfo.job || '',
+                    "带班领导座机": lInfo.landline || '',
+                    "带班领导手机": lInfo.phone || '',
                     "女值班员":v.female,
                     "男值班员":v.male,
                     "备注":v.remark
@@ -345,7 +363,6 @@ window.app = {
         const s = this.data.schedules[ds] || {leader:'', female:'', male:'', remark:''};
         this.currentOrigin = {...s};
         const fill = (id, t, v) => {
-            // 换班下拉框：排除处于轮空期的用户？不，手动换班应允许选择任何人，但最好标记状态
             const list = this.data.personnel[t];
             let html = `<option value="">(空)</option>`;
             if(v && !list.find(p=>p.name===v)) html += `<option value="${v}" selected>${v} (历史)</option>`;
@@ -391,6 +408,7 @@ window.app = {
         lList.forEach(p=>addB(p,'l','带:')); fList.forEach(p=>addB(p,'f','女:')); mList.forEach(p=>addB(p,'m','男:'));
     },
     saveSwap() {
+        if(!confirm("确认调整排班？")) return;
         const ds=document.getElementById('swapDate').value;
         const nL=document.getElementById('swL').value, nF=document.getElementById('swF').value, nM=document.getElementById('swM').value;
         let r=document.getElementById('swR').value;
@@ -415,8 +433,8 @@ window.app = {
                 ${t==='leader'?`<td>${p.job||'-'}</td><td>${p.landline||'-'}</td>`:''}
                 <td>${p.phone||'-'}</td>
                 <td>
-                    <button class="icon-btn" onclick="app.movePerson('${t}',${i},-1)">▲</button>
-                    <button class="icon-btn" onclick="app.movePerson('${t}',${i},1)">▼</button>
+                    <button class="icon-btn" title="上移" onclick="app.movePerson('${t}',${i},-1)">▲</button>
+                    <button class="icon-btn" title="下移" onclick="app.movePerson('${t}',${i},1)">▼</button>
                     <button class="icon-btn" onclick="app.editPerson(${i})">✎</button> 
                     <button class="icon-btn" style="color:red" onclick="app.delPerson('${t}',${i})">×</button>
                 </td></tr>`;
@@ -424,7 +442,11 @@ window.app = {
         document.getElementById('personList').innerHTML=h+`</tbody></table></div>`;
         this.fillSelects();
     },
-    movePerson(t, i, d) { const l=this.data.personnel[t], dest=i+d; if(dest>=0 && dest<l.length){ [l[i],l[dest]]=[l[dest],l[i]]; this.save(); this.renderPersonList(); } },
+    movePerson(t, i, d) { 
+        if(!confirm("确认调整顺序？")) return;
+        const l=this.data.personnel[t], dest=i+d; 
+        if(dest>=0 && dest<l.length){ [l[i],l[dest]]=[l[dest],l[i]]; this.save(); this.renderPersonList(); } 
+    },
     editPerson(i=null) {
         const t=document.getElementById('manageType').value;
         document.getElementById('editModal').style.display='flex';
@@ -433,7 +455,7 @@ window.app = {
         const p=i!==null?this.data.personnel[t][i]:{name:'',phone:'',job:'',landline:'',remark:'',skips:[]};
         document.getElementById('edName').value=p.name; document.getElementById('edPhone').value=p.phone||'';
         document.getElementById('edJob').value=p.job||''; document.getElementById('edLand').value=p.landline||'';
-        // 核心修复：深拷贝，防止引用污染
+        // 核心修复：深拷贝
         this.tempSkips = JSON.parse(JSON.stringify(p.skips || []));
         this.renderSkips();
     },
@@ -441,20 +463,23 @@ window.app = {
     renderSkips() { document.getElementById('skipList').innerHTML = this.tempSkips.map((s,i) => `<span style="background:#fee2e2; padding:2px 5px; border-radius:4px; font-size:11px; margin-right:5px;">${s.start}~${s.end} <b style="cursor:pointer" onclick="app.removeSkip(${i})">×</b></span>`).join(''); },
     removeSkip(i) { this.tempSkips.splice(i,1); this.renderSkips(); },
     savePerson() {
+        if(!confirm("确认保存人员信息变更？")) return;
         const t=document.getElementById('edType').value, id=document.getElementById('edId').value, n=document.getElementById('edName').value;
         if(!n)return;
-        // 核心修复：保存时也进行深拷贝
+        // 核心修复：保存时深拷贝 + 保存备注
         const p={
-            name:n, phone:document.getElementById('edPhone').value, 
+            name:n, 
+            phone:document.getElementById('edPhone').value, 
+            remark:document.getElementById('edRem').value, // 修复备注丢失
             skips: JSON.parse(JSON.stringify(this.tempSkips))
         };
         if(t==='leader'){ p.job=document.getElementById('edJob').value; p.landline=document.getElementById('edLand').value; }
         if(id==='new') this.data.personnel[t].push(p); else this.data.personnel[t][id]=p;
         this.log('编辑人员', `${t}:${n}`); this.save(); this.renderPersonList(); document.getElementById('editModal').style.display='none';
     },
-    delPerson(t,i) { if(confirm('删除?')) { this.data.personnel[t].splice(i,1); this.log('删除人员', t); this.save(); this.renderPersonList(); } },
+    delPerson(t,i) { if(confirm('确认删除该人员？')) { this.data.personnel[t].splice(i,1); this.log('删除人员', t); this.save(); this.renderPersonList(); } },
     
-    // --- Gen (Strict Logic) ---
+    // --- Gen ---
     fillSelects() { const f=(id,t)=>document.getElementById(id).innerHTML=this.data.personnel[t].map(p=>`<option value="${p.name}">${p.name}</option>`).join(''); f('slW','leader');f('slH','leader');f('sf','female');f('sm','male'); },
     generate() {
         const ms=document.getElementById('genMonth').value; if(!ms)return alert('选月份');
@@ -463,7 +488,6 @@ window.app = {
         let iw=getI('slW','leader'), ih=getI('slH','leader'), ife=getI('sf','female'), ima=getI('sm','male');
         const pL=this.data.personnel.leader, pF=this.data.personnel.female, pM=this.data.personnel.male;
         
-        // 修复：严格的日期字符串比对，包含边界
         const isSkipped = (p, dateStr) => (p.skips||[]).some(s => dateStr >= s.start && dateStr <= s.end);
         
         const pick=(list, start, dateStr)=>{
@@ -482,7 +506,7 @@ window.app = {
             const f=pick(pF,ife,ds); ife=f.next; const ma=pick(pM,ima,ds); ima=ma.next;
             this.data.schedules[ds]={leader:l, female:f.name, male:ma.name, remark:''};
         }
-        this.renderCal(); this.toast('⚡ 预览已生成，请点击发布以保存');
+        this.renderCal(); this.toast('⚡ 预览已生成，请点击【发布排班】保存');
     },
 
     // --- Holiday ---

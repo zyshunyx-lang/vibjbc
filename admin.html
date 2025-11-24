@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>后台管理系统</title>
+    <title>后台管理系统 (V34 Stable)</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <style>
         :root { 
@@ -72,9 +72,8 @@
         .lab-switch-item { display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 10px; border-radius: 6px; margin-bottom: 10px; border: 1px solid #e2e8f0; }
         .menu-day { border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px; }
         
-        /* 纯净版样式调整 */
         h4 { margin-top: 0; margin-bottom: 15px; color: #334155; font-size: 14px; border-left: 4px solid var(--primary); padding-left: 10px; }
-        .icon-btn { border: none; background: none; padding: 2px 6px; font-size: 14px; color: #64748b; }
+        .icon-btn { border: none; background: none; padding: 2px 6px; font-size: 14px; color: #64748b; cursor: pointer; }
         .icon-btn:hover { color: var(--primary); background: #f1f5f9; border-radius: 3px; }
     </style>
 </head>
@@ -132,7 +131,7 @@
                         <button onclick="app.clearNotice()">清空</button>
                     </div>
                 </div>
-                <h4>自动排班 (含轮空过滤)</h4>
+                <h4>自动排班 (已修复悬停跳过)</h4>
                 <label>带班 (工作日) 起始</label><select id="slW"></select>
                 <label>带班 (假日) 起始</label><select id="slH"></select>
                 <label>女值班员 起始</label><select id="sf"></select>
@@ -147,7 +146,7 @@
             </div>
 
             <div id="t-person" class="tab-pane">
-                <div style="display:flex; gap:5px; margin-bottom:10px;">
+                <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center;">
                     <select id="manageType" onchange="app.renderPersonList()" style="margin:0; flex:1;">
                         <option value="leader">带班领导</option>
                         <option value="female">女值班员</option>
@@ -291,12 +290,29 @@ window.app = {
     async saveNotice() { this.data.notice = document.getElementById('noticeInput').value; await this.save(); this.log('更新公告', this.data.notice); this.toast("公告已更新"); },
     clearNotice() { document.getElementById('noticeInput').value=""; this.saveNotice(); },
     deleteCurrentMonth() { if(!confirm(`删除本月数据？`)) return; const p=`${this.vy}-${String(this.vm).padStart(2,'0')}`; Object.keys(this.data.schedules).forEach(k=>{if(k.startsWith(p))delete this.data.schedules[k]}); this.save(); this.renderCal(); this.log('删除月度', p); },
+    
+    // 修复：导出 Excel 字段补全
     downloadMonth() {
         const mKey=`${this.vy}-${String(this.vm).padStart(2,'0')}`, rows=[];
         const days=new Date(this.vy, this.vm, 0).getDate();
+        const pl = this.data.personnel.leader;
+        const findL = (n) => pl.find(p => p.name === n) || {};
+
         for(let d=1;d<=days;d++){
             const ds=`${mKey}-${String(d).padStart(2,'0')}`, v=this.data.schedules[ds];
-            if(v) rows.push({"日期":ds,"带班领导":v.leader,"女值班员":v.female,"男值班员":v.male,"备注":v.remark});
+            if(v) {
+                const lInfo = findL(v.leader);
+                rows.push({
+                    "日期":ds,
+                    "带班领导":v.leader,
+                    "职务": lInfo.job || '',
+                    "座机": lInfo.landline || '',
+                    "手机": lInfo.phone || '',
+                    "女值班员":v.female,
+                    "男值班员":v.male,
+                    "备注":v.remark
+                });
+            }
         }
         if(!rows.length)return alert('无数据');
         XLSX.writeFile(XLSX.utils.book_new(XLSX.utils.json_to_sheet(rows)), `值班表_${mKey}.xlsx`);
@@ -329,6 +345,7 @@ window.app = {
         const s = this.data.schedules[ds] || {leader:'', female:'', male:'', remark:''};
         this.currentOrigin = {...s};
         const fill = (id, t, v) => {
+            // 换班下拉框：排除处于轮空期的用户？不，手动换班应允许选择任何人，但最好标记状态
             const list = this.data.personnel[t];
             let html = `<option value="">(空)</option>`;
             if(v && !list.find(p=>p.name===v)) html += `<option value="${v}" selected>${v} (历史)</option>`;
@@ -392,16 +409,16 @@ window.app = {
         let h=`<div class="table-container"><table><thead><tr><th>姓名</th>${t==='leader'?'<th>职务</th><th>座机</th>':''}<th>手机</th><th>操作</th></tr></thead><tbody>`;
         l.forEach((p,i)=>{
             const hasActiveSkip = (p.skips||[]).some(s => { const now = new Date().toISOString().split('T')[0]; return s.end >= now; });
-            const skipRanges = (p.skips||[]).map(s=>s.start+'~'+s.end).join(' ');
+            const skipRange = (p.skips||[]).map(s=>`${s.start}~${s.end}`).join(' ');
             h+=`<tr class="${hasActiveSkip?'suspended-row':''}">
-                <td>${p.name}${hasActiveSkip?`<br><small style="color:red">🚫${skipRanges}</small>`:''}</td>
+                <td>${p.name}${hasActiveSkip?`<br><small style="color:red">🚫${skipRange}</small>`:''}</td>
                 ${t==='leader'?`<td>${p.job||'-'}</td><td>${p.landline||'-'}</td>`:''}
                 <td>${p.phone||'-'}</td>
                 <td>
-                    <button style="padding:2px 6px;" title="上移" onclick="app.movePerson('${t}',${i},-1)">▲</button>
-                    <button style="padding:2px 6px;" title="下移" onclick="app.movePerson('${t}',${i},1)">▼</button>
-                    <button style="padding:2px 6px;" title="编辑" onclick="app.editPerson(${i})">✎</button> 
-                    <button style="padding:2px 6px;color:red;" title="删除" onclick="app.delPerson('${t}',${i})">×</button>
+                    <button class="icon-btn" onclick="app.movePerson('${t}',${i},-1)">▲</button>
+                    <button class="icon-btn" onclick="app.movePerson('${t}',${i},1)">▼</button>
+                    <button class="icon-btn" onclick="app.editPerson(${i})">✎</button> 
+                    <button class="icon-btn" style="color:red" onclick="app.delPerson('${t}',${i})">×</button>
                 </td></tr>`;
         });
         document.getElementById('personList').innerHTML=h+`</tbody></table></div>`;
@@ -416,7 +433,9 @@ window.app = {
         const p=i!==null?this.data.personnel[t][i]:{name:'',phone:'',job:'',landline:'',remark:'',skips:[]};
         document.getElementById('edName').value=p.name; document.getElementById('edPhone').value=p.phone||'';
         document.getElementById('edJob').value=p.job||''; document.getElementById('edLand').value=p.landline||'';
-        this.tempSkips = [...(p.skips||[])]; this.renderSkips();
+        // 核心修复：深拷贝，防止引用污染
+        this.tempSkips = JSON.parse(JSON.stringify(p.skips || []));
+        this.renderSkips();
     },
     addSkip() { const s=document.getElementById('skipStart').value, e=document.getElementById('skipEnd').value; if(s&&e) { this.tempSkips.push({start:s, end:e}); this.renderSkips(); } },
     renderSkips() { document.getElementById('skipList').innerHTML = this.tempSkips.map((s,i) => `<span style="background:#fee2e2; padding:2px 5px; border-radius:4px; font-size:11px; margin-right:5px;">${s.start}~${s.end} <b style="cursor:pointer" onclick="app.removeSkip(${i})">×</b></span>`).join(''); },
@@ -424,12 +443,18 @@ window.app = {
     savePerson() {
         const t=document.getElementById('edType').value, id=document.getElementById('edId').value, n=document.getElementById('edName').value;
         if(!n)return;
-        const p={name:n, phone:document.getElementById('edPhone').value, skips:this.tempSkips};
+        // 核心修复：保存时也进行深拷贝
+        const p={
+            name:n, phone:document.getElementById('edPhone').value, 
+            skips: JSON.parse(JSON.stringify(this.tempSkips))
+        };
         if(t==='leader'){ p.job=document.getElementById('edJob').value; p.landline=document.getElementById('edLand').value; }
         if(id==='new') this.data.personnel[t].push(p); else this.data.personnel[t][id]=p;
         this.log('编辑人员', `${t}:${n}`); this.save(); this.renderPersonList(); document.getElementById('editModal').style.display='none';
     },
     delPerson(t,i) { if(confirm('删除?')) { this.data.personnel[t].splice(i,1); this.log('删除人员', t); this.save(); this.renderPersonList(); } },
+    
+    // --- Gen (Strict Logic) ---
     fillSelects() { const f=(id,t)=>document.getElementById(id).innerHTML=this.data.personnel[t].map(p=>`<option value="${p.name}">${p.name}</option>`).join(''); f('slW','leader');f('slH','leader');f('sf','female');f('sm','male'); },
     generate() {
         const ms=document.getElementById('genMonth').value; if(!ms)return alert('选月份');
@@ -438,7 +463,7 @@ window.app = {
         let iw=getI('slW','leader'), ih=getI('slH','leader'), ife=getI('sf','female'), ima=getI('sm','male');
         const pL=this.data.personnel.leader, pF=this.data.personnel.female, pM=this.data.personnel.male;
         
-        // 修复：日期比对，确保不因时区失效
+        // 修复：严格的日期字符串比对，包含边界
         const isSkipped = (p, dateStr) => (p.skips||[]).some(s => dateStr >= s.start && dateStr <= s.end);
         
         const pick=(list, start, dateStr)=>{
@@ -457,8 +482,10 @@ window.app = {
             const f=pick(pF,ife,ds); ife=f.next; const ma=pick(pM,ima,ds); ima=ma.next;
             this.data.schedules[ds]={leader:l, female:f.name, male:ma.name, remark:''};
         }
-        this.renderCal(); this.toast('⚡ 预览已生成，请点击【☁️ 发布】保存');
+        this.renderCal(); this.toast('⚡ 预览已生成，请点击发布以保存');
     },
+
+    // --- Holiday ---
     renderHoliday() { const y=document.getElementById('hYear').value, l=this.data.holidays[y]||[]; document.getElementById('holidayChips').innerHTML=l.sort().map(d=>`<div style="background:white;border:1px solid #f87171;padding:2px 6px;border-radius:4px;font-size:11px;color:#dc2626;">${d.substring(5)} <span onclick="app.delHoliday('${y}','${d}')" style="cursor:pointer;font-weight:bold">&times;</span></div>`).join(''); },
     addHolidayRange() { const y=document.getElementById('hYear').value, s=document.getElementById('hStart').value, e=document.getElementById('hEnd').value; if(!s||!e)return; let d=new Date(s), en=new Date(e), c=0; if(!this.data.holidays[y])this.data.holidays[y]=[]; while(d<=en){ const k=d.toISOString().slice(0,10); if(!this.data.holidays[y].includes(k)){this.data.holidays[y].push(k);c++} d.setDate(d.getDate()+1); } this.log('添加假日', s); this.save(); this.renderHoliday(); },
     delHoliday(y,d) { this.data.holidays[y]=this.data.holidays[y].filter(x=>x!==d); this.log('删除假日', d); this.save(); this.renderHoliday(); },

@@ -195,27 +195,40 @@
         
         /* --- 移动端适配 (重点优化) --- */
         @media (max-width: 768px) {
+            body {
+                height: auto; /* 允许页面滚动 */
+                overflow-y: auto;
+            }
+
             .app-header {
                 font-size: 18px;
                 padding: 12px;
+                position: sticky; /* 标题栏吸顶 */
+                top: 0;
+                z-index: 100;
             }
             .main-container {
                 flex-direction: column; 
                 padding: 10px;
-                gap: 10px;
+                gap: 15px;
+                height: auto; /* 内容自然撑开 */
+                overflow: visible;
+                display: block; /* 取消flex限制 */
             }
             
-            /* 信息面板：给足空间 */
+            /* 信息面板：完整显示，不限制高度 */
             .info-panel {
                 width: 100%;
-                /* 允许占据屏幕近一半的高度，确保信息展示完整 */
-                max-height: 45vh; 
-                min-height: 30vh;
+                max-height: none; /* 移除高度限制 */
+                height: auto;
+                min-height: 0;
                 flex-shrink: 0;
                 border-radius: 16px;
-                flex-direction: column; /* 恢复垂直布局，让内容自然堆叠 */
+                flex-direction: column; 
                 align-items: stretch;
                 padding: 0;
+                overflow: visible; /* 移除局部滚动 */
+                margin-bottom: 15px;
             }
             .date-header {
                 padding: 15px;
@@ -226,45 +239,46 @@
                 justify-content: center;
                 align-items: baseline;
                 gap: 10px;
-                min-height: auto;
             }
-            .date-big { font-size: 32px; margin: 0; }
+            .date-big { font-size: 36px; margin: 0; }
             .week-day { font-size: 16px; }
-            .date-full { display: inline-block; font-size: 12px; margin-left: 5px; } /* 恢复日期显示 */
+            .date-full { display: inline-block; font-size: 13px; margin-left: 5px; } 
             
             .info-content {
                 padding: 15px;
-                overflow-y: auto;
+                overflow: visible; /* 移除局部滚动 */
+                height: auto;
             }
-            .info-card { padding-bottom: 10px; margin-bottom: 10px; }
+            .info-card { padding-bottom: 12px; margin-bottom: 12px; }
             .card-title { margin-bottom: 8px; font-size: 11px; }
 
-            /* 日历面板：极致压缩 */
+            /* 日历面板：紧凑布局 */
             .calendar-panel { 
                 width: 100%; 
                 border-radius: 16px;
-                flex: 1; /* 占据剩余空间 */
-                min-height: 0; /* 允许压缩 */
+                flex: none; /* 不自动填充，由内容决定高度 */
+                height: auto;
+                overflow: visible;
             }
-            .cal-toolbar { padding: 8px 10px; }
-            .cal-grid-wrapper { padding: 0 5px 5px 5px; }
+            .cal-toolbar { padding: 10px 12px; }
+            .cal-grid-wrapper { padding: 0 8px 8px 8px; overflow: visible; height: auto; }
             .month-selector { font-size: 15px; gap: 8px; }
-            .cal-body { gap: 2px; } /* 极小间距 */
+            .cal-body { gap: 4px; } 
             
             /* 压缩单元格 */
             .cal-cell { 
                 aspect-ratio: unset; 
-                height: 32px; /* 高度压缩 */
+                height: 34px; 
                 border-radius: 6px; 
             }
-            .date-num { font-size: 15px; }
+            .date-num { font-size: 16px; }
             .cal-cell.today-cell::after { top: 3px; right: 3px; width: 4px; height: 4px; }
             
             .cal-head { margin-bottom: 5px; }
             .cal-head div { padding: 5px 0; font-size: 11px; }
 
-            .func-bar { padding: 8px; gap: 8px; }
-            .func-btn { font-size: 12px; padding: 8px 0; }
+            .func-bar { padding: 10px; gap: 10px; }
+            .func-btn { font-size: 13px; padding: 10px 0; }
         }
 
         /* 登录层 */

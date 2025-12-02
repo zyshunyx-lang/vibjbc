@@ -122,7 +122,12 @@ window.app = {
         const grid = document.getElementById('calGrid'); grid.innerHTML = '';
         const firstDay = new Date(this.y, this.m-1, 1), daysInMonth = new Date(this.y, this.m, 0).getDate(), startEmpty = (firstDay.getDay() + 6) % 7;
         for(let i=0; i<startEmpty; i++) grid.innerHTML += `<div class="cal-cell" style="background:#f8fafc"></div>`;
-        const todayStr = new Date().toISOString().split('T')[0], hList = this.data.holidays[String(this.y)] || [];
+        
+        // 简单安全的获取本地今天字符串的方法
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        
+        const hList = this.data.holidays[String(this.y)] || [];
         for(let d=1; d<=daysInMonth; d++) {
             const ds = `${this.y}-${String(this.m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const s = this.data.schedules[ds], isH = hList.includes(ds);
@@ -174,19 +179,38 @@ window.app = {
                 count++;
             }
         });
-        if(this.currentSearchResults.length > 0) icsDiv.innerHTML = `<button class="ics-btn" onclick="app.addToCalendar()">📅 一键导入日历 (含提醒)</button>`;
+        if(this.currentSearchResults.length > 0) icsDiv.innerHTML = `<button class="ics-btn" onclick="app.addToCalendar()">📅 导出未来值班日历 (含提醒)</button>`;
         if(count===0) r.innerHTML = '<div style="text-align:center;padding:20px;color:#999">无记录</div>';
     },
+    
     addToCalendar() {
-        if(!this.currentSearchResults.length) return;
+        // 优化：仅导出未来（含今天）的值班
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        
+        // 过滤：日期 >= 今天
+        const targetList = this.currentSearchResults.filter(item => item.date >= todayStr);
+
+        if(!targetList.length) {
+            alert('当前没有未来的值班安排可导出');
+            return;
+        }
+
         let ics = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//DutySystem//CN\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\n";
-        this.currentSearchResults.forEach(item => {
-            const [y,m,d] = item.date.split('-'); const nextD = new Date(y, m-1, parseInt(d)+1).toISOString().slice(0,10).replace(/-/g,'');
+        targetList.forEach(item => {
+            const [y,m,d] = item.date.split('-'); 
+            // 修正：日历事件结束时间必须+1天，且需要安全处理跨月/跨年
+            const nextDDate = new Date(y, m-1, parseInt(d)+1);
+            const ny = nextDDate.getFullYear();
+            const nm = String(nextDDate.getMonth()+1).padStart(2,'0');
+            const nd = String(nextDDate.getDate()).padStart(2,'0');
+            const nextDStr = `${ny}${nm}${nd}`;
+            
             const s = item.data;
-            ics += `BEGIN:VEVENT\nDTSTART;VALUE=DATE:${item.date.replace(/-/g,'')}\nDTEND;VALUE=DATE:${nextD}\nSUMMARY:值班: ${s.leader} ${s.female} ${s.male}\nDESCRIPTION:带班:${s.leader}\\n女值:${s.female}\\n男值:${s.male}${s.remark?'\\n备注:'+s.remark:''}\nBEGIN:VALARM\nTRIGGER:-PT15H\nACTION:DISPLAY\nDESCRIPTION:明天有值班\nEND:VALARM\nEND:VEVENT\n`;
+            ics += `BEGIN:VEVENT\nDTSTART;VALUE=DATE:${item.date.replace(/-/g,'')}\nDTEND;VALUE=DATE:${nextDStr}\nSUMMARY:值班: ${s.leader} ${s.female} ${s.male}\nDESCRIPTION:带班:${s.leader}\\n女值:${s.female}\\n男值:${s.male}${s.remark?'\\n备注:'+s.remark:''}\nBEGIN:VALARM\nTRIGGER:-PT15H\nACTION:DISPLAY\nDESCRIPTION:明天有值班\nEND:VALARM\nEND:VEVENT\n`;
         });
         ics += "END:VCALENDAR";
-        const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([ics], {type:'text/calendar'})); link.download = "值班.ics"; link.click();
+        const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([ics], {type:'text/calendar'})); link.download = "未来值班表.ics"; link.click();
     },
 
     // --- Predict Logic (Corrected) ---
@@ -214,7 +238,7 @@ window.app = {
             const regex = /【(?:换|备)】\s*([^→]+)\s*→\s*([^\s]+)/g;
             let match;
             while ((match = regex.exec(remark)) !== null) {
-                if (match[2] === nameInCell) return match[1].trim(); // 如果当前名字是“新名”，则返回“原名”
+                if (match[2] === nameInCell) return match[1].trim(); 
             }
             return nameInCell;
         };
@@ -245,7 +269,6 @@ window.app = {
     showSinglePrediction(div, type, targetIdx, lastVal, startDate) {
         const list = this.data.personnel[type];
         const lastIdx = list.findIndex(p=>p.name===lastVal);
-        // 如果找不到最后一个人（可能被删了），默认从0开始
         const startIdx = lastIdx === -1 ? 0 : (lastIdx + 1) % list.length;
         const future = this.sim(startDate, 365, (d, isH) => true, list, startIdx, targetIdx);
         div.innerHTML = this.formatRes(future, "值班员 (不分节假日)");
@@ -266,12 +289,19 @@ window.app = {
     },
 
     sim(startDate, daysLimit, conditionFn, list, currentIdx, targetIdx) {
-        let d = new Date(startDate); d.setDate(d.getDate() + 1);
+        let d = new Date(startDate); 
+        d.setDate(d.getDate() + 1); // 从排班结束的【后一天】开始算
         let ptr = currentIdx;
 
         for(let i=0; i<daysLimit; i++) {
-            const ds = d.toISOString().split('T')[0], y = ds.split('-')[0];
-            const isH = (this.data.holidays[y]||[]).includes(ds);
+            // FIX: 之前使用 toISOString() 会因为时区导致日期回退1天
+            // 现在手动拼接本地年月日，确保逻辑准确
+            const y = d.getFullYear();
+            const m = String(d.getMonth()+1).padStart(2,'0');
+            const dayNum = String(d.getDate()).padStart(2,'0');
+            const ds = `${y}-${m}-${dayNum}`;
+            
+            const isH = (this.data.holidays[String(y)]||[]).includes(ds);
             
             if(conditionFn(ds, isH)) {
                 let p = list[ptr];

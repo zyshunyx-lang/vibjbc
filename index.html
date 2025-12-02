@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-    <title>值班公示平台</title>
+    <title>值班表查看器</title>
     <style>
         :root {
             --primary: #2563eb; 
@@ -189,59 +189,60 @@
         @media (max-width: 768px) {
             .main-container {
                 flex-direction: column; 
-                padding: 12px;
-                gap: 12px;
+                padding: 10px; /* 减小边距 */
+                gap: 10px;
             }
             .info-panel {
                 width: 100%;
-                /* 限制高度，但允许滚动，确保信息显示 */
-                max-height: 260px; 
+                /* 限制高度，减小内边距 */
+                max-height: 220px; 
                 flex-shrink: 0;
                 border-radius: 16px;
-                flex-direction: row; /* 尝试横向布局以节省空间 */
+                flex-direction: row; 
                 align-items: center;
-                padding: 15px;
+                padding: 12px; /* 减小Padding */
             }
             .date-header {
-                padding: 0 20px 0 0;
+                padding: 0 15px 0 0; /* 减小右侧边距 */
                 border-right: 1px dashed var(--border);
-                min-width: 100px;
+                min-width: 90px;
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
                 align-items: center;
             }
-            .date-big { font-size: 48px; margin: 0; }
-            .week-day { font-size: 14px; }
-            .date-full { font-size: 12px; display: none; } /* 手机端简化日期显示 */
+            .date-big { font-size: 40px; margin: 0; } /* 缩小大号数字 */
+            .week-day { font-size: 13px; }
+            .date-full { font-size: 12px; display: none; }
             
             .info-content {
-                padding: 0 0 0 20px;
-                gap: 12px;
+                padding: 0 0 0 15px; /* 减小左侧边距 */
+                gap: 8px; /* 减小间距 */
                 overflow-y: auto;
                 height: 100%;
                 border-top: none;
             }
-            .info-card { padding-bottom: 8px; border-bottom: 1px dashed #eee; }
-            .card-title { margin-bottom: 4px; font-size: 11px; }
-            .duty-row { font-size: 14px; }
-            .menu-text { font-size: 13px; line-height: 1.4; }
+            .info-card { padding-bottom: 6px; border-bottom: 1px dashed #eee; }
+            .card-title { margin-bottom: 4px; font-size: 10px; } /* 缩小标题 */
+            .duty-row { font-size: 13px; }
+            .menu-text { font-size: 12px; line-height: 1.4; }
 
             /* 日历面板 */
             .calendar-panel { 
                 width: 100%; 
                 border-radius: 16px;
-                flex: 1; /* 占据剩余空间 */
+                flex: 1; 
             }
-            .cal-toolbar { padding: 12px 15px; }
-            .cal-grid-wrapper { padding: 0 10px 10px 10px; }
+            .cal-toolbar { padding: 10px 12px; }
+            .cal-grid-wrapper { padding: 0 8px 8px 8px; }
             .month-selector { font-size: 16px; }
-            .cal-body { gap: 4px; }
+            .cal-body { gap: 4px; } /* 减小日历间距 */
             /* 手机端日历格高度压缩 */
-            .cal-cell { aspect-ratio: unset; height: 44px; border-radius: 8px; }
-            .date-num { font-size: 18px; }
+            .cal-cell { aspect-ratio: unset; height: 36px; border-radius: 8px; } /* 减小高度 */
+            .date-num { font-size: 16px; } /* 减小日期字体 */
+            .cal-cell.today-cell::after { top: 4px; right: 4px; width: 5px; height: 5px; } /* 调整今日小圆点位置 */
             
-            .func-bar { padding: 10px; gap: 8px; }
+            .func-bar { padding: 8px; gap: 8px; }
             .func-btn { font-size: 12px; padding: 10px 0; }
         }
 
@@ -255,7 +256,7 @@
 <!-- 登录层 -->
 <div id="loginOverlay">
     <div class="login-box">
-        <h2 style="margin-top:0; color:var(--primary); font-size:20px; margin-bottom:20px;">值班公示平台</h2>
+        <h2 style="margin-top:0; color:var(--primary); font-size:20px; margin-bottom:20px;">值班表查看器</h2>
         <input type="password" id="loginPass" placeholder="输入查看密码" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:10px; margin-bottom:15px; text-align:center; font-size:16px; outline:none;" onkeydown="if(event.key==='Enter') app.login()">
         <button onclick="app.login()" style="width:100%; background:var(--primary); color:white; border:none; padding:12px; border-radius:10px; font-weight:600; cursor:pointer; font-size:16px;">进入系统</button>
         <div id="loginMsg" style="color:#ef4444; font-size:12px; margin-top:15px; min-height:16px;"></div>
@@ -320,7 +321,7 @@
         <!-- 底部功能栏 -->
         <div class="func-bar">
             <button class="func-btn btn-query" onclick="app.openFeature('query')">值班查询</button>
-            <button class="func-btn btn-menu" onclick="app.openFeature('menu')">每周菜谱</button>
+            <!-- 移除每周菜谱按钮 -->
             <button class="func-btn btn-predict" onclick="app.openFeature('predict')">值班预估</button>
         </div>
     </div>
@@ -344,7 +345,7 @@
             <div id="sResult" style="max-height:300px; overflow-y:auto; display:flex; flex-direction:column; gap:10px;"></div>
         </div>
 
-        <!-- 每周菜谱内容 -->
+        <!-- 每周菜谱内容 (按钮已移除，保留代码结构) -->
         <div id="content_menu" class="lab-content" style="display:none;">
             <div id="weekMenuList"></div>
         </div>
@@ -499,6 +500,14 @@ window.app = {
 
     // --- 功能区 ---
     openFeature(feat) {
+        // --- 预估功能知晓确认 ---
+        if (feat === 'predict') {
+            const warningText = "【预估知晓确认】\n\n该预估基于已发布值班表最后一日人员推算，未来变化无法预估，结果仅供参考。\n\n同意则可以使用，不同意则无法使用。";
+            if (!confirm(warningText)) {
+                return; // 用户点击取消，不执行后续打开逻辑
+            }
+        }
+
         const switches = this.data.labConfig.switches || {query:true, menu:true, predict:true};
         const modal = document.getElementById('featModal');
         const titles = { query: '值班查询', menu: '每周菜谱', predict: '值班预估' };

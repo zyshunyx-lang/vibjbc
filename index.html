@@ -21,6 +21,19 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
+        /* --- 顶部标题栏 --- */
+        .app-header {
+            text-align: center;
+            padding: 15px;
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--primary);
+            background: white;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            letter-spacing: 1px;
+        }
+
         /* --- 布局容器 --- */
         .main-container {
             display: flex;
@@ -67,7 +80,6 @@
         }
         
         .info-card {
-            /* 移除背景框，改用更现代的留白设计 */
             padding-bottom: 15px;
             border-bottom: 1px dashed var(--border);
         }
@@ -120,7 +132,7 @@
         .cal-cell {
             background: #f8fafc;
             border-radius: 12px;
-            aspect-ratio: 1/0.8; /* 稍微扁一点 */
+            aspect-ratio: 1/0.8; 
             cursor: pointer;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
@@ -133,7 +145,6 @@
         .cal-cell:hover { background: #f1f5f9; transform: scale(1.02); }
         .cal-cell.selected { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
         
-        /* 今天标记：右上角小圆点 */
         .cal-cell.today-cell::after { 
             content: ''; position: absolute; top: 8px; right: 8px; 
             width: 6px; height: 6px; background: var(--today-dot); border-radius: 50%; 
@@ -142,7 +153,6 @@
         .cal-cell.holiday { background: #fef2f2; }
         .cal-cell.holiday .date-num { color: var(--accent-red); }
         
-        /* 只有日期数字，居中放大 */
         .date-num { font-size: 24px; font-weight: 700; color: var(--text-main); pointer-events: none; }
         .cal-cell.selected .date-num { color: var(--primary); }
         
@@ -173,9 +183,7 @@
         }
         .func-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
         .func-btn::before { font-size: 16px; font-weight: normal; }
-        /* 使用伪元素添加简单图标，避免emoji显得不正式 */
         .btn-query::before { content: '🔍'; }
-        .btn-menu::before { content: '🍽️'; }
         .btn-predict::before { content: '🔮'; }
 
         button.icon-btn { border: none; background: #f1f5f9; border-radius: 10px; width: 36px; height: 36px; cursor: pointer; color: var(--text-main); transition:0.2s; display: flex; align-items: center; justify-content: center; font-weight:bold; }
@@ -185,65 +193,78 @@
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 200; justify-content: center; align-items: center; backdrop-filter: blur(5px); padding: 20px; }
         .modal-card { background: white; width: 100%; max-width: 420px; max-height: 80vh; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); overflow-y: auto; }
         
-        /* --- 移动端适配 --- */
+        /* --- 移动端适配 (重点优化) --- */
         @media (max-width: 768px) {
+            .app-header {
+                font-size: 18px;
+                padding: 12px;
+            }
             .main-container {
                 flex-direction: column; 
-                padding: 10px; /* 减小边距 */
+                padding: 10px;
                 gap: 10px;
             }
+            
+            /* 信息面板：给足空间 */
             .info-panel {
                 width: 100%;
-                /* 限制高度，减小内边距 */
-                max-height: 220px; 
+                /* 允许占据屏幕近一半的高度，确保信息展示完整 */
+                max-height: 45vh; 
+                min-height: 30vh;
                 flex-shrink: 0;
                 border-radius: 16px;
-                flex-direction: row; 
-                align-items: center;
-                padding: 12px; /* 减小Padding */
+                flex-direction: column; /* 恢复垂直布局，让内容自然堆叠 */
+                align-items: stretch;
+                padding: 0;
             }
             .date-header {
-                padding: 0 15px 0 0; /* 减小右侧边距 */
-                border-right: 1px dashed var(--border);
-                min-width: 90px;
+                padding: 15px;
+                border-right: none;
+                border-bottom: 1px dashed var(--border);
                 display: flex;
-                flex-direction: column;
+                flex-direction: row;
                 justify-content: center;
-                align-items: center;
+                align-items: baseline;
+                gap: 10px;
+                min-height: auto;
             }
-            .date-big { font-size: 40px; margin: 0; } /* 缩小大号数字 */
-            .week-day { font-size: 13px; }
-            .date-full { font-size: 12px; display: none; }
+            .date-big { font-size: 32px; margin: 0; }
+            .week-day { font-size: 16px; }
+            .date-full { display: inline-block; font-size: 12px; margin-left: 5px; } /* 恢复日期显示 */
             
             .info-content {
-                padding: 0 0 0 15px; /* 减小左侧边距 */
-                gap: 8px; /* 减小间距 */
+                padding: 15px;
                 overflow-y: auto;
-                height: 100%;
-                border-top: none;
             }
-            .info-card { padding-bottom: 6px; border-bottom: 1px dashed #eee; }
-            .card-title { margin-bottom: 4px; font-size: 10px; } /* 缩小标题 */
-            .duty-row { font-size: 13px; }
-            .menu-text { font-size: 12px; line-height: 1.4; }
+            .info-card { padding-bottom: 10px; margin-bottom: 10px; }
+            .card-title { margin-bottom: 8px; font-size: 11px; }
 
-            /* 日历面板 */
+            /* 日历面板：极致压缩 */
             .calendar-panel { 
                 width: 100%; 
                 border-radius: 16px;
-                flex: 1; 
+                flex: 1; /* 占据剩余空间 */
+                min-height: 0; /* 允许压缩 */
             }
-            .cal-toolbar { padding: 10px 12px; }
-            .cal-grid-wrapper { padding: 0 8px 8px 8px; }
-            .month-selector { font-size: 16px; }
-            .cal-body { gap: 4px; } /* 减小日历间距 */
-            /* 手机端日历格高度压缩 */
-            .cal-cell { aspect-ratio: unset; height: 36px; border-radius: 8px; } /* 减小高度 */
-            .date-num { font-size: 16px; } /* 减小日期字体 */
-            .cal-cell.today-cell::after { top: 4px; right: 4px; width: 5px; height: 5px; } /* 调整今日小圆点位置 */
+            .cal-toolbar { padding: 8px 10px; }
+            .cal-grid-wrapper { padding: 0 5px 5px 5px; }
+            .month-selector { font-size: 15px; gap: 8px; }
+            .cal-body { gap: 2px; } /* 极小间距 */
             
+            /* 压缩单元格 */
+            .cal-cell { 
+                aspect-ratio: unset; 
+                height: 32px; /* 高度压缩 */
+                border-radius: 6px; 
+            }
+            .date-num { font-size: 15px; }
+            .cal-cell.today-cell::after { top: 3px; right: 3px; width: 4px; height: 4px; }
+            
+            .cal-head { margin-bottom: 5px; }
+            .cal-head div { padding: 5px 0; font-size: 11px; }
+
             .func-bar { padding: 8px; gap: 8px; }
-            .func-btn { font-size: 12px; padding: 10px 0; }
+            .func-btn { font-size: 12px; padding: 8px 0; }
         }
 
         /* 登录层 */
@@ -263,14 +284,16 @@
     </div>
 </div>
 
+<div class="app-header">值班表查看器 (V2.0)</div>
+
 <div class="main-container">
     <!-- 左侧信息面板 -->
     <div class="info-panel">
         <div class="date-header">
             <div class="date-big" id="sideDay">--</div>
             <div class="date-full-box">
-                <div class="week-day" id="sideWeek">星期-</div>
-                <div class="date-full" id="sideFullDate">---- 年 -- 月</div>
+                <span class="week-day" id="sideWeek">星期-</span>
+                <span class="date-full" id="sideFullDate">---- 年 -- 月</span>
             </div>
         </div>
         <div class="info-content">

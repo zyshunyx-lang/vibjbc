@@ -1,8 +1,12 @@
+{
+type: uploaded file
+fileName: zyshunyx-lang/vibjbc/vibjbc-333ca6c4fa9facab8aa7c2c1a7427897c43bee61/admin.html
+fullContent:
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>后台管理系统 (V36 Stable)</title>
+    <title>后台管理系统 (V37 Stable)</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <style>
         :root { 
@@ -174,13 +178,25 @@
 
             <div id="t-lab" class="tab-pane">
                 <h4>实验室功能开关</h4>
-                <div class="lab-switch-item"><span>值班查询</span><input type="checkbox" id="sw_query" onchange="app.saveLabConfig()"></div>
-                <div class="lab-switch-item"><span>每周菜谱</span><input type="checkbox" id="sw_menu" onchange="app.saveLabConfig()"></div>
-                <div class="lab-switch-item"><span>值班预估</span><input type="checkbox" id="sw_predict" onchange="app.saveLabConfig()"></div>
+                <div class="lab-switch-item"><span>值班查询</span><input type="checkbox" id="sw_query" onchange="app.saveLabSwitch()"></div>
+                <div class="lab-switch-item"><span>每周菜谱 (按天显示)</span><input type="checkbox" id="sw_menu" onchange="app.saveLabSwitch()"></div>
+                <div class="lab-switch-item"><span>值班预估</span><input type="checkbox" id="sw_predict" onchange="app.saveLabSwitch()"></div>
                 <hr style="border:0; border-top:1px dashed #eee; margin:20px 0;">
-                <h4>菜谱编辑</h4>
-                <div id="menuEditor"></div>
-                <button class="primary" style="width:100%" onclick="app.saveLabConfig()">保存配置</button>
+                
+                <h4>每日菜谱管理</h4>
+                <div style="background:#f8fafc; padding:15px; border-radius:6px; border:1px solid #e2e8f0;">
+                    <label>选择日期</label>
+                    <div style="display:flex; gap:5px; margin-bottom:10px;">
+                        <input type="date" id="menuDate" onchange="app.loadMenuForDate()">
+                        <button class="danger" style="width:auto;" onclick="app.deleteMenu()">删除</button>
+                    </div>
+                    <label>菜谱内容</label>
+                    <textarea id="menuContent" rows="4" placeholder="例如：
+早餐：牛奶、鸡蛋
+午餐：红烧肉、青菜
+晚餐：面条"></textarea>
+                    <button class="primary" style="width:100%; margin-top:5px;" onclick="app.saveMenu()">保存该日菜谱</button>
+                </div>
             </div>
 
             <div id="t-data" class="tab-pane">
@@ -231,7 +247,8 @@ window.app = {
     init() { 
         document.getElementById('hYear').value = this.vy; 
         document.getElementById('genMonth').value = new Date().toISOString().slice(0,7);
-        this.renderMenuEditor();
+        // 初始化菜谱日期为今天
+        document.getElementById('menuDate').value = new Date().toISOString().slice(0,10);
     },
     
     async login() {
@@ -243,7 +260,6 @@ window.app = {
             if(j.role==='admin') {
                 this.token = p;
                 if(j.data) this.data = {...this.data, ...j.data};
-                // 核心修复：登录时运行数据清洗，断开引用
                 this.sanitizeData(); 
                 this.initDataSafe();
                 document.getElementById('loginLayer').style.display='none';
@@ -254,12 +270,10 @@ window.app = {
         } catch(e) { alert('网络连接失败'); }
     },
     
-    // 核心修复：数据清洗函数，断开引用链
     sanitizeData() {
         ['leader', 'female', 'male'].forEach(type => {
             if (this.data.personnel[type]) {
                 this.data.personnel[type].forEach(p => {
-                    // 强制深拷贝 skips 数组，防止一人悬停全员生效
                     p.skips = p.skips ? JSON.parse(JSON.stringify(p.skips)) : [];
                 });
             }
@@ -271,32 +285,66 @@ window.app = {
         if(!this.data.holidays) this.data.holidays={};
         if(!this.data.schedules) this.data.schedules={};
         if(!this.data.logs) this.data.logs=[];
-        if(!this.data.labConfig) this.data.labConfig={switches:{query:true,menu:true,predict:true}, menus:['','','','','']};
+        // 升级 labConfig 结构，增加 dailyMenus
+        if(!this.data.labConfig) this.data.labConfig={switches:{query:true,menu:true,predict:true}, dailyMenus:{}};
+        if(!this.data.labConfig.dailyMenus) this.data.labConfig.dailyMenus = {}; 
     },
 
     async save() { try { await fetch(this.api, {method:'POST', body:JSON.stringify({action:'save', password:this.token, newData:this.data})}); } catch(e){} },
     toast(m) { const t=document.getElementById('toast'); t.innerText=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2000); },
     log(act, det) { this.data.logs.unshift({t:new Date().toLocaleString(), a:act, d:det}); if(this.data.logs.length>300)this.data.logs.pop(); this.save(); this.renderLogs(); },
     
-    // --- Lab Config ---
+    // --- Lab Config (Updated for Daily Menus) ---
     initLabConfig() {
         const c = this.data.labConfig || {};
         const s = c.switches || {query:true, menu:true, predict:true};
         document.getElementById('sw_query').checked = s.query;
         document.getElementById('sw_menu').checked = s.menu;
         document.getElementById('sw_predict').checked = s.predict;
-        const menus = c.menus || ['','','','',''];
-        menus.forEach((m,i) => { const el = document.getElementById(`menu_d${i+1}`); if(el) el.value = m; });
+        // Load initial menu for default date
+        this.loadMenuForDate();
     },
-    renderMenuEditor() {
-        const days = ['周一','周二','周三','周四','周五'];
-        document.getElementById('menuEditor').innerHTML = days.map((d,i) => `<div class="menu-day"><label>${d}</label><input id="menu_d${i+1}" placeholder="菜谱..."></div>`).join('');
+    async saveLabSwitch() {
+        // Only save switches, keep menus as is
+        const switches = { 
+            query: document.getElementById('sw_query').checked, 
+            menu: document.getElementById('sw_menu').checked, 
+            predict: document.getElementById('sw_predict').checked 
+        };
+        this.data.labConfig.switches = switches;
+        await this.save(); 
+        this.toast("开关配置已保存");
     },
-    async saveLabConfig() {
-        const switches = { query: document.getElementById('sw_query').checked, menu: document.getElementById('sw_menu').checked, predict: document.getElementById('sw_predict').checked };
-        const menus = [1,2,3,4,5].map(i => document.getElementById(`menu_d${i}`).value);
-        this.data.labConfig = { switches, menus };
-        await this.save(); this.toast("实验室配置已保存");
+    loadMenuForDate() {
+        const d = document.getElementById('menuDate').value;
+        const menus = this.data.labConfig.dailyMenus || {};
+        document.getElementById('menuContent').value = menus[d] || '';
+    },
+    async saveMenu() {
+        const d = document.getElementById('menuDate').value;
+        const content = document.getElementById('menuContent').value.trim();
+        if(!d) return alert('请选择日期');
+        
+        if(!this.data.labConfig.dailyMenus) this.data.labConfig.dailyMenus = {};
+        
+        if(content) {
+            this.data.labConfig.dailyMenus[d] = content;
+            this.log('保存菜谱', d);
+        } else {
+            delete this.data.labConfig.dailyMenus[d];
+            this.log('清除菜谱', d);
+        }
+        
+        await this.save();
+        this.toast("菜谱已保存");
+    },
+    async deleteMenu() {
+        const d = document.getElementById('menuDate').value;
+        if(!d) return;
+        if(confirm(`确定删除 ${d} 的菜谱吗？`)) {
+            document.getElementById('menuContent').value = '';
+            this.saveMenu();
+        }
     },
 
     // --- Actions ---
@@ -310,7 +358,6 @@ window.app = {
     clearNotice() { document.getElementById('noticeInput').value=""; this.saveNotice(); },
     deleteCurrentMonth() { if(!confirm(`删除本月数据？`)) return; const p=`${this.vy}-${String(this.vm).padStart(2,'0')}`; Object.keys(this.data.schedules).forEach(k=>{if(k.startsWith(p))delete this.data.schedules[k]}); this.save(); this.renderCal(); this.log('删除月度', p); },
     
-    // 修复：导出 Excel 字段全量补全
     downloadMonth() {
         const mKey=`${this.vy}-${String(this.vm).padStart(2,'0')}`, rows=[];
         const days=new Date(this.vy, this.vm, 0).getDate();
@@ -456,7 +503,6 @@ window.app = {
         const p=i!==null?this.data.personnel[t][i]:{name:'',phone:'',job:'',landline:'',remark:'',skips:[]};
         document.getElementById('edName').value=p.name; document.getElementById('edPhone').value=p.phone||'';
         document.getElementById('edJob').value=p.job||''; document.getElementById('edLand').value=p.landline||'';
-        // 核心修复：编辑时深拷贝
         this.tempSkips = JSON.parse(JSON.stringify(p.skips || []));
         this.renderSkips();
     },
@@ -467,14 +513,12 @@ window.app = {
         if(!confirm("确认保存人员信息变更？")) return;
         const t=document.getElementById('edType').value, id=document.getElementById('edId').value, n=document.getElementById('edName').value;
         if(!n)return;
-        // 核心修复：保存时深拷贝 + 备注补全
         const p={
             name:n, 
             phone:document.getElementById('edPhone').value, 
-            remark:document.getElementById('edRem')?.value || '', // Fixed: edRem element might not be in DOM for this version, added safe check. Actually edRem is not in the HTML provided, but previous code referenced it. I will keep it safe.
+            remark:document.getElementById('edRem')?.value || '',
             skips: JSON.parse(JSON.stringify(this.tempSkips))
         };
-        // Re-added job and landline for leaders
         if(t==='leader'){ p.job=document.getElementById('edJob').value; p.landline=document.getElementById('edLand').value; }
         if(id==='new') this.data.personnel[t].push(p); else this.data.personnel[t][id]=p;
         this.log('编辑人员', `${t}:${n}`); this.save(); this.renderPersonList(); document.getElementById('editModal').style.display='none';
@@ -484,9 +528,6 @@ window.app = {
     // --- Gen ---
     fillSelects() { const f=(id,t)=>document.getElementById(id).innerHTML=this.data.personnel[t].map(p=>`<option value="${p.name}">${p.name}</option>`).join(''); f('slW','leader');f('slH','leader');f('sf','female');f('sm','male'); },
 
-    // ==========================================
-    // V35 强力验证补丁 (Replace Logic Here)
-    // ==========================================
     generate() {
         const ms=document.getElementById('genMonth').value; if(!ms)return alert('选月份');
         const [y,m]=ms.split('-').map(Number), days=new Date(y,m,0).getDate(), hl=this.data.holidays[String(y)]||[];
@@ -494,95 +535,79 @@ window.app = {
         let iw=getI('slW','leader'), ih=getI('slH','leader'), ife=getI('sf','female'), ima=getI('sm','male');
         const pL=this.data.personnel.leader, pF=this.data.personnel.female, pM=this.data.personnel.male;
         
-        // --- V35 强力验证补丁 Start ---
-        
-        // 1. 核心逻辑：轮空检查 (增强版，防止 undefined)
         const isSkipped = (p, dateStr) => {
             if (!p || !p.skips || !Array.isArray(p.skips)) return false;
-            return p.skips.some(s => dateStr >= s.start && dateStr <= s.end);
+            return p.skips。some(s => dateStr >= s.start && dateStr <= s.end);
         };
         
-        // 2. 选人逻辑 (含日志自证)
         const pick=(list, start, dateStr)=>{
-            let c=start, cnt=0; 
+            let c=start， cnt=0; 
             while(cnt<list.length){ 
                 const p=list[c%list.length]; 
-                // 如果没有轮空，直接返回
-                if(!isSkipped(p, dateStr)) return {name:p.name, next:(c+1)%list.length}; 
-                
-                // 日志自证：明确记录跳过动作
-                this.log('生成过滤', `${dateStr} 跳过 ${p.name} (处于轮空期)`);
-                
-                // 消耗轮次 (c++)，寻找下一位
+                if(!isSkipped(p， dateStr)) return {name:p.name， 下一处:(c+1)%list.length}; 
+                this。log('生成过滤'， `${dateStr} 跳过 ${p。name} (处于轮空期)`);
                 c++; cnt++; 
             } 
-            return {name:'无可用', next:c};
+            return {name:'无可用'， 下一处:c};
         };
 
-        if(!pL.length) return alert('人员不足');
+        if(!pL。length) return alert('人员不足');
         
         for(let d=1;d<=days;d++) {
-            const ds=`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`, isH=hl.includes(ds);
-            
-            // 初步选人
+            const ds=`${y}-${String(m)。padStart(2，'0')}-${String(d)。padStart(2，'0')}`， isH=hl。includes(ds);
             let l; 
             if(isH){ const r=pick(pL,ih,ds); l=r.name; ih=r.next; } 
-            else { const r=pick(pL,iw,ds); l=r.name; iw=r.next; }
-            
-            const f=pick(pF,ife,ds); ife=f.next; 
-            const ma=pick(pM,ima,ds); ima=ma.next;
+            else { const r=pick(pL，iw，ds); l=r。name; iw=r。下一处; }
+            const f=pick(pF，ife，ds); ife=f.下一处; 
+            const ma=pick(pM，ima，ds); ima=ma。下一处;
 
-            // 3. 强力验证：二次确认 (Double Confirmation)
-            // 防止算法死角，虽然 pick 已经检查过，这里做最终兜底
-            const finalCheck = (name, list) => {
-                 const p = list.find(x => x.name === name);
-                 if(p && isSkipped(p, ds)) {
-                     this.log('严重警告', `${ds} 异常排入轮空人员 ${name}，请检查数据`);
-                     return `${name}(轮空异常)`; // 显性标记错误
+            const finalCheck = (name， list) => {
+                 const p = list。find(x => x。name === name);
+                 if(p && isSkipped(p， ds)) {
+                     this.log('严重警告'， `${ds} 异常排入轮空人员 ${name}，请检查数据`);
+                     return `${name}(轮空异常)`;
                  }
                  return name;
             };
 
-            const lFinal = finalCheck(l, pL);
+            const lFinal = finalCheck(l， pL);
             const fFinal = finalCheck(f.name, pF);
-            const mFinal = finalCheck(ma.name, pM);
+            const mFinal = finalCheck(ma。name， pM);
 
-            this.data.schedules[ds]={leader:lFinal, female:fFinal, male:mFinal, remark:''};
+            this。data。schedules[ds]={leader:lFinal， female:fFinal， male:mFinal, remark:''};
         }
-        // --- V35 强力验证补丁 End ---
-
         this.renderCal(); 
-        this.toast('⚡ 预览已生成 (含V35强力验证)');
+        this.toast('⚡ 预览已生成');
     },
-    // ==========================================
 
     // --- Holiday ---
-    renderHoliday() { const y=document.getElementById('hYear').value, l=this.data.holidays[y]||[]; document.getElementById('holidayChips').innerHTML=l.sort().map(d=>`<div style="background:white;border:1px solid #f87171;padding:2px 6px;border-radius:4px;font-size:11px;color:#dc2626;">${d.substring(5)} <span onclick="app.delHoliday('${y}','${d}')" style="cursor:pointer;font-weight:bold">&times;</span></div>`).join(''); },
-    addHolidayRange() { const y=document.getElementById('hYear').value, s=document.getElementById('hStart').value, e=document.getElementById('hEnd').value; if(!s||!e)return; let d=new Date(s), en=new Date(e), c=0; if(!this.data.holidays[y])this.data.holidays[y]=[]; while(d<=en){ const k=d.toISOString().slice(0,10); if(!this.data.holidays[y].includes(k)){this.data.holidays[y].push(k);c++} d.setDate(d.getDate()+1); } this.log('添加假日', s); this.save(); this.renderHoliday(); },
-    delHoliday(y,d) { this.data.holidays[y]=this.data.holidays[y].filter(x=>x!==d); this.log('删除假日', d); this.save(); this.renderHoliday(); },
-    importGlobalData(inp) { const f=inp.files[0]; const r=new FileReader(); r.onload=e=>{ try{this.data=JSON.parse(e.target.result);this.save();this.log('数据恢复','full backup');alert('恢复成功，即将刷新');location.reload();}catch(err){alert('格式错误');}}; r.readAsText(f); },
+    renderHoliday() { const y=document.getElementById('hYear')。value， l=this。data。holidays[y]||[]; document.getElementById('holidayChips')。innerHTML=l。sort()。map(d=>`<div style="background:white;border:1px solid #f87171;padding:2px 6px;border-radius:4px;font-size:11px;color:#dc2626;">${d。substring(5)} <span onclick="app.delHoliday('${y}','${d}')" style="cursor:pointer;font-weight:bold">&times;</span></div>`)。join(''); }，
+    addHolidayRange() { const y=document.getElementById('hYear')。value， s=document。getElementById('hStart')。value， e=document.getElementById('hEnd')。value; if(!s||!e)return; let d=new Date(s)， en=new Date(e)， c=0; if(!this。data。holidays[y])this。data。holidays[y]=[]; while(d<=en){ const k=d。toISOString()。slice(0，10); if(!this.data.holidays[y]。includes(k)){this。data。holidays[y]。push(k);c++} d。setDate(d。getDate()+1); } this。log('添加假日'， s); this。save(); this.renderHoliday(); }，
+    delHoliday(y，d) { this。data。holidays[y]=this。data。holidays[y]。filter(x=>x!==d); this。log('删除假日'， d); this。save(); this.renderHoliday(); }，
+    importGlobalData(inp) { const f=inp。文件[0]; const r=new FileReader(); r。onload=e=>{ try{this。data=JSON。parse(e。target。result);this.save();this。log('数据恢复'，'full backup');alert('恢复成功，即将刷新');location.reload();}catch(err){alert('格式错误');}}; r。readAsText(f); },
     importHistory(inp) { const f=inp.files[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{ const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'}), rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]); let c=0; rows.forEach(row => { let d=row['日期']; if(typeof d==='number')d=new Date(Math.round((d-25569)*86400*1000)).toISOString().slice(0,10); if(d && d.match(/^\d{4}-\d{2}-\d{2}$/)) { this.data.schedules[d]={leader:row['带班领导']||'', female:row['女值班员']||'', male:row['男值班员']||'', remark:row['备注']||''}; c++; } }); this.log('历史导入', c); this.save(); this.renderCal(); inp.value=''; }; r.readAsArrayBuffer(f); },
-    exportData() { const b=new Blob([JSON.stringify(this.data)],{type:'application/json'}), a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='backup.json'; a.click(); },
-    renderLogs() { const b=document.querySelector('#logTable tbody'); b.innerHTML=this.data.logs.map(l=>`<tr><td style="color:#666;font-size:11px;">${l.t}</td><td><strong>${l.a}</strong></td><td>${l.d}</td></tr>`).join(''); },
-    clearLogs() { this.data.logs=[]; this.save(); this.renderLogs(); },
-    tab(id) { document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); event.currentTarget.classList.add('active'); document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); },
+    exportData() { const b=new Blob([JSON。stringify(this。data)]，{输入:'application/json'})， a=document.createElement('a'); a.href=URL.createObjectURL(b); a。download='backup.json'; a.click(); }，
+    renderLogs() { const b=document。querySelector('#logTable tbody'); b。innerHTML=this。data。logs。map(l=>`<tr><td style="color:#666;font-size:11px;">${l。t}</td><td><strong>${l。a}</strong></td><td>${l。d}</td></tr>`)。join(''); }，
+    clearLogs() { this。data。logs=[]; this。save(); this.renderLogs(); }，
+    tab(id) { document。querySelectorAll('.tab')。forEach(t=>t。classList。remove('active')); event.currentTarget.classList。add('active'); document。querySelectorAll('.tab-pane')。forEach(p=>p.classList.remove('active')); document.getElementById(id)。classList。add('active'); }，
     downloadTemplate(t) { const d = t==='person' ? [{"人员类型":"带班领导","姓名":"张三","职务":"处长","座机":"8001","手机":"139"}] : [{"日期":"2025-01-01"}]; XLSX.writeFile(XLSX.utils.book_new(XLSX.utils.json_to_sheet(d)), "模板.xlsx"); },
-    importExcel(inp, type) {
+    importExcel(inp， 输入) {
         const f=inp.files[0]; if(!f)return;
         const r=new FileReader();
-        r.onload=e=>{
-            const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'}), rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+        r。onload=e=>{
+            const wb=XLSX。read(new Uint8Array(e。target。result)，{type:'array'})， rows=XLSX。utils。sheet_to_json(wb。Sheets[wb。SheetNames[0]]);
             let c=0;
             if(type==='person') {
-                const map={'带班领导':'leader','女值班员':'female','男值班员':'male'};
-                rows.forEach(r=>{ const t=map[r['人员类型']]; if(t){this.data.personnel[t].push({name:r['姓名'],phone:r['手机'],job:r['职务'],landline:r['座机'],remark:r['备注'],skips:[]});c++} });
+                const map={'带班领导':'leader'，'女值班员':'female'，'男值班员':'male'};
+                rows。forEach(r=>{ const t=map[r['人员类型']]; if(t){this。data。personnel[t]。push({name:r['姓名']，phone:r['手机']，job:r['职务']，landline:r['座机']，remark:r['备注']，skips:[]});c++} });
             }
-            this.log('导入人员', c+'条'); this.save(); this.renderPersonList(); inp.value=''; alert(`导入 ${c} 条`);
+            this。log('导入人员'， c+'条'); this。save(); this。renderPersonList(); inp。value=''; alert(`导入 ${c} 条`);
         }; r.readAsArrayBuffer(f);
-    },
-    changePass(type) { const v = type==='admin'?document.getElementById('newAdmin').value : document.getElementById('newView').value; if(!v) return; if(confirm(`修改${type==='admin'?'管理':'查看'}密码？`)) fetch(this.api, {method:'POST', body:JSON.stringify({action:'change_pass', password:this.token, [type==='admin'?'newAdminPass':'newViewPass']:v})}).then(()=>{alert('成功');}); }
+    }，
+    changePass(type) { const v = 输入==='admin'?document。getElementById('newAdmin')。value : document。getElementById('newView')。value; if(!v) return; if(confirm(`修改${type==='admin'?'管理':'查看'}密码？`)) fetch(this。api， {method:'POST', body:JSON.stringify({action:'change_pass'， password:this。token， [输入==='admin'?'newAdminPass':'newViewPass']:v})})。键，然后(()=>{alert('成功');}); }
 };
-window.onload=()=>app.init();
+window。onload=()=>app.init();
 </script>
 </body>
 </html>
+}

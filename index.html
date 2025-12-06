@@ -33,6 +33,8 @@
             flex-shrink: 0;
             letter-spacing: 1px;
         }
+        .clickable-title { cursor: pointer; transition: opacity 0.2s; }
+        .clickable-title:active { opacity: 0.6; }
 
         /* --- 布局容器 --- */
         .main-container {
@@ -297,7 +299,9 @@
     </div>
 </div>
 
-<div class="app-header">值班表查看器 (V2.2 适配版)</div>
+<div class="app-header">
+    <span class="clickable-title" onclick="app.openAbout()">值班表查看器 (V2.2 适配版)</span>
+</div>
 
 <div class="main-container">
     <div class="info-panel">
@@ -394,12 +398,22 @@
     </div>
 </div>
 
+<div id="aboutModal" class="modal-overlay">
+    <div class="modal-card" style="max-height: 80vh;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
+            <b style="font-size:18px;">更新日志</b>
+            <span style="font-size:24px; cursor:pointer; color:#94a3b8;" onclick="document.getElementById('aboutModal').style.display='none'">×</span>
+        </div>
+        <div id="versionTimeline" style="overflow-y:auto; flex:1;"></div>
+    </div>
+</div>
+
 <script>
 window.onerror = function(msg) { document.getElementById('loginMsg').innerText = "系统加载错误: " + msg; };
 
 window.app = {
     api: '/api',
-    data: { schedules:{}, holidays:{}, labConfig:{} },
+    data: { schedules:{}, holidays:{}, labConfig:{}, versions:[] },
     y: new Date().getFullYear(), m: new Date().getMonth()+1,
     selectedDate: null, 
     currentSearchResults: [],
@@ -416,6 +430,7 @@ window.app = {
                 ['schedules','holidays'].forEach(k=>{if(!this.data[k])this.data[k]={}});
                 if(!this.data.labConfig) this.data.labConfig = {switches:{query:true,menu:true,predict:true}, dailyMenus:{}};
                 if(!this.data.labConfig.dailyMenus) this.data.labConfig.dailyMenus = {};
+                if(!this.data.versions) this.data.versions = [];
                 
                 document.getElementById('loginOverlay').style.display = 'none';
                 
@@ -565,6 +580,31 @@ window.app = {
 
         document.getElementById('content_'+feat).style.display = 'block';
         if(feat === 'query') setTimeout(()=>document.getElementById('sInput').focus(), 100);
+    },
+
+    // --- Version Info Functions ---
+    openAbout() {
+        document.getElementById('aboutModal').style.display = 'flex';
+        this.renderAbout();
+    },
+    
+    renderAbout() {
+        const list = this.data.versions || [];
+        let html = '';
+        if(list.length === 0) {
+            html = '<div style="text-align:center; color:#94a3b8; padding:20px;">暂无更新记录</div>';
+        } else {
+            list.forEach(v => {
+                html += '<div style="margin-bottom:15px; padding-bottom:15px; border-bottom:1px dashed #eee;">' +
+                    '<div style="display:flex; justify-content:space-between; margin-bottom:5px;">' +
+                        '<span style="background:var(--primary); color:white; padding:2px 6px; border-radius:4px; font-size:12px; font-weight:bold;">'+v.ver+'</span>' +
+                        '<span style="color:#94a3b8; font-size:12px;">'+v.date+'</span>' +
+                    '</div>' +
+                    '<div style="font-size:14px; color:var(--text-main); white-space:pre-wrap; line-height:1.5;">'+v.desc+'</div>' +
+                '</div>';
+            });
+        }
+        document.getElementById('versionTimeline').innerHTML = html;
     },
 
     search() {

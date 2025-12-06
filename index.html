@@ -196,9 +196,10 @@
         
         .modal-card.full-screen { max-width: 1200px; height: 90vh; max-height: 90vh; }
 
-        /* 整月视图样式 */
+        /* 整月视图样式 (Desktop) */
         .month-view-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #e2e8f0; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; flex: 1; }
-        .month-head { background: #f8fafc; padding: 10px; text-align: center; font-weight: bold; color: #64748b; font-size: 14px; }
+        .month-head { background: #f8fafc; padding: 10px; text-align: center; font-weight: bold; color: #64748b; font-size: 14px; display: grid; grid-template-columns: repeat(7, 1fr); }
+        .month-head div { text-align: center; }
         .month-cell { background: white; min-height: 100px; padding: 8px; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
         .month-cell.holiday { background: #fef2f2; }
         .m-date-row { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 4px; font-size: 14px; }
@@ -208,7 +209,7 @@
         .m-name.m { background: #dcfce7; color: #166534; }
         .m-remark { font-size: 10px; color: #c2410c; border-top: 1px dashed #e2e8f0; margin-top: auto; padding-top: 2px; }
 
-        /* --- 移动端适配 --- */
+        /* --- 移动端适配 (重点修复) --- */
         @media (max-width: 768px) {
             body { height: auto; overflow-y: auto; }
             .app-header { font-size: 18px; padding: 12px; position: sticky; top: 0; z-index: 100; }
@@ -231,11 +232,53 @@
             .cal-head div { padding: 5px 0; font-size: 11px; }
             .func-bar { padding: 10px; gap: 10px; }
             .func-btn { font-size: 13px; padding: 10px 0; }
-            /* 整月视图移动端 */
-            .month-view-grid { grid-template-columns: repeat(1, 1fr); gap: 10px; background: transparent; border: none; }
-            .month-head { display: none; }
-            .month-cell { border-radius: 8px; border: 1px solid #e2e8f0; min-height: 0; }
-            .m-date-row { margin-bottom: 8px; border-bottom: 1px dashed #eee; padding-bottom: 5px; }
+
+            /* --- 整月视图移动端适配 (强制网格 + 小字体) --- */
+            .modal-card.full-screen { 
+                padding: 10px; /* 减少模态框内边距 */
+                max-width: 100vw;
+                height: 90vh;
+                border-radius: 12px;
+            }
+            .month-head {
+                font-size: 12px;
+                padding: 5px 0;
+            }
+            .month-view-grid { 
+                /* 强制维持 7 列网格布局 */
+                grid-template-columns: repeat(7, 1fr); 
+                gap: 1px; 
+                background: #cbd5e1; /* 网格线颜色加深一点 */
+                border: 1px solid #cbd5e1;
+            }
+            .month-cell { 
+                min-height: 55px; /* 减小单元格高度 */
+                padding: 2px;     /* 极窄内边距 */
+                border-radius: 0; 
+                border: none;
+                gap: 1px;
+            }
+            .m-date-row { 
+                font-size: 10px; /* 日期小字 */
+                margin-bottom: 2px;
+                border-bottom: none;
+                padding-bottom: 0;
+            }
+            .m-name { 
+                font-size: 9px;   /* 姓名超小字 */
+                padding: 1px 2px; /* 紧凑内边距 */
+                line-height: 1.1;
+                margin-bottom: 1px;
+                border-radius: 2px;
+            }
+            .m-remark {
+                font-size: 8px;   /* 备注极小字 */
+                line-height: 1.1;
+                padding-top: 1px;
+                white-space: nowrap; /* 备注不换行，超长截断 */
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
         }
 
         /* 登录层 */
@@ -254,7 +297,7 @@
     </div>
 </div>
 
-<div class="app-header">值班表查看器 (V45.5)</div>
+<div class="app-header">值班表查看器 (V2.2 适配版)</div>
 
 <div class="main-container">
     <div class="info-panel">
@@ -339,7 +382,7 @@
         </div>
         
         <div id="content_month" class="lab-content" style="display:none; height:100%; flex-direction:column;">
-             <div class="month-head" style="display:grid; grid-template-columns: repeat(7, 1fr);">
+             <div class="month-head">
                  <div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div><div>日</div>
              </div>
              <div class="month-view-grid" id="monthViewGrid" style="overflow-y:auto;"></div>
@@ -474,9 +517,8 @@ window.app = {
         const startEmpty = (firstDay.getDay() + 6) % 7; 
         const hList = this.data.holidays[String(this.y)] || [];
 
-        if(window.innerWidth > 768) {
-             for(let i=0; i<startEmpty; i++) grid.innerHTML += '<div class="month-cell" style="background:#f8fafc;"></div>';
-        }
+        // 无论PC还是移动端，都渲染空白格以保持网格对齐
+        for(let i=0; i<startEmpty; i++) grid.innerHTML += '<div class="month-cell" style="background:#f8fafc;"></div>';
 
         for(let d=1; d<=daysInMonth; d++) {
             const ds = this.y+'-'+String(this.m).padStart(2,'0')+'-'+String(d).padStart(2,'0');

@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>值班公示平台</title>
+    <style>
+        :root {
+            --primary: #4f46e5; --bg: #f8fafc; --surface: #ffffff; --border: #e2e8f0;
+            --text-main: #0f172a; --text-sub: #64748b;
+            --leader-bg: #e0e7ff; --leader-text: #3730a3;
+            --female-bg: #fce7f3; --female-text: #9d174d;
+            --male-bg: #dcfce7;   --male-text: #166534;
+            --holiday-bg: #fef2f2; --holiday-text: #dc2626;
+            --notice-bg: #fff7ed; --notice-text: #c2410c;
+            --today-ring: #f59e0b;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; padding-bottom: env(safe-area-inset-bottom); }
+        #loginOverlay { position: fixed; inset: 0; background: rgba(255,255,255,0.98); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.3s; padding: 20px; }
+        .login-card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 320px; text-align: center; border: 1px solid var(--border); box-sizing: border-box; }
+        .login-btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 15px; font-weight: 600; }
+        .header { background: var(--surface); padding-top: calc(env(safe-area-inset-top) + 15px); padding-bottom: 10px; padding-left: 15px; padding-right: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; z-index: 50; }
+        .brand { font-size: 18px; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+        .controls { display: flex; gap: 8px; align-items: center; }
+        button.btn { background: white; border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; cursor: pointer; color: var(--text-main); font-size: 13px; font-weight: 500; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; }
+        button.btn:active { background: #f1f5f9; transform: scale(0.98); }
+        .ticker-container { background: var(--notice-bg); color: var(--notice-text); height: 36px; display: flex; align-items: center; overflow: hidden; border-bottom: 1px solid #fed7aa; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+        .ticker-icon { width: 100px; flex-shrink: 0; background: var(--notice-bg); z-index: 10; border-right: 1px solid #fed7aa; height: 100%; display: flex; align-items: center; justify-content: center; box-shadow: 4px 0 8px rgba(0,0,0,0.02); }
+        .ticker-content { white-space: nowrap; animation: scroll 25s linear infinite; padding-left: 100%; display: flex; align-items: center; }
+        @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+        .cal-box { flex: 1; margin: 10px; background: white; border-radius: 12px; border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .cal-head { display: grid; grid-template-columns: repeat(7, 1fr); background: #f8fafc; border-bottom: 1px solid var(--border); }
+        .cal-head div { padding: 8px 2px; text-align: center; font-size: 12px; font-weight: 600; color: var(--text-sub); }
+        .cal-body { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); overflow-y: auto; gap: 1px; background: var(--border); }
+        .cal-cell { background: white; min-height: 80px; padding: 4px; display: flex; flex-direction: column; gap: 2px; }
+        .cal-cell.today { background: #fffbeb !important; box-shadow: inset 0 0 0 2px var(--today-ring); }
+        .cal-cell.holiday { background: var(--holiday-bg); }
+        .date-num { font-weight: 700; font-size: 12px; margin-bottom: 2px; display: flex; justify-content: space-between; color: #94a3b8; }
+        .cal-cell.today .date-num { color: #f59e0b; }
+        .cal-cell.holiday .date-num span { color: #dc2626; }
+        .duty-tag { padding: 2px 4px; border-radius: 4px; font-size: 11px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center; }
+        .tag-l { background: var(--leader-bg); color: var(--leader-text); }
+        .tag-f { background: var(--female-bg); color: var(--female-text); }
+        .tag-m { background: var(--male-bg); color: var(--male-text); }
+        .remark { font-size: 10px; color: #c2410c; margin-top: auto; padding-top: 2px; border-top: 1px dashed #f1f5f9; white-space: pre-wrap; word-break: break-all; line-height: 1.2; }
+        
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; justify-content: center; align-items: center; backdrop-filter: blur(2px); padding: 20px; }
+        .modal-card { background: white; width: 100%; max-width: 400px; max-height: 80vh; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.1); box-sizing: border-box; overflow-y: auto; }
+        .lab-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        .lab-item { border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; transition: 0.2s; cursor: pointer; display: flex; align-items: center; gap: 15px; }
+        .lab-item:hover { border-color: var(--primary); background: #f8fafc; }
+        .lab-icon { font-size: 24px; }
+        .lab-text h4 { margin: 0 0 4px 0; color: var(--text-main); }
+        .lab-text p { margin: 0; font-size: 12px; color: var(--text-sub); }
+        .lab-content { display: none; }
+        .menu-item { border-bottom: 1px dashed #eee; padding: 10px 0; }
+        .menu-day { font-weight: bold; color: var(--primary); width: 50px; display: inline-block; }
+        .ics-btn { background: #10b981; color: white; border: none; border-radius: 6px; padding: 10px; font-size: 14px; font-weight: 600; margin-bottom: 15px; width: 100%; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
+    </style>
+</head>
+<body>
+
+<div id="loginOverlay"><div class="login-card"><h3 style="margin-top:0; color:var(--primary)">🛡️ 值班公示平台</h3><input type="password" id="loginPass" placeholder="请输入查看密码" style="width:100%; padding:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:8px; text-align:center; font-size:16px;" onkeydown="if(event.key==='Enter') app.login()"><button class="login-btn" onclick="app.login()">进入系统</button><div id="loginMsg" style="color:#ef4444; margin-top:15px; font-size:13px; min-height:20px;"></div></div></div>
+
+<header class="header">
+    <div class="brand">📅 值班表</div>
+    <div class="controls">
+        <button class="btn" onclick="app.goToday()">今天</button>
+        <div style="display:flex; gap:2px; flex: 2; justify-content: center;"><button class="btn" style="width:30px;" onclick="app.changeMonth(-1)">◀</button><button class="btn" style="flex:1; font-weight:bold; font-size:14px;" id="dateDisp"></button><button class="btn" style="width:30px;" onclick="app.changeMonth(1)">▶</button></div>
+        <button class="btn" onclick="app.openLab()">🧪 实验室</button>
+    </div>
+</header>
+
+<div class="ticker-container" id="noticeBar" style="display:none"><div class="ticker-icon">📢 公告</div><div class="ticker-content" id="noticeText"></div></div>
+<div class="cal-box"><div class="cal-head"><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div><div>日</div></div><div class="cal-body" id="calGrid"></div></div>
+
+<div id="labModal" class="modal-overlay">
+    <div class="modal-card">
+        <div style="display:flex; justify-content:space-between; margin-bottom:15px; align-items:center;">
+            <div id="labBack" style="cursor:pointer;font-size:24px;padding:5px;display:none;" onclick="app.labBack()">←</div>
+            <b style="font-size:16px;" id="labTitle">实验室功能</b>
+            <span style="cursor:pointer; padding:5px; font-size:20px;" onclick="document.getElementById('labModal').style.display='none'">×</span>
+        </div>
+        <div id="labMenu" class="lab-grid">
+            <div class="lab-item" onclick="app.openFeature('query')"><div class="lab-icon">🔍</div><div class="lab-text"><h4>值班查询</h4><p>查找排班/导出日历</p></div></div>
+            <div class="lab-item" onclick="app.openFeature('menu')"><div class="lab-icon">🍱</div><div class="lab-text"><h4>每周菜谱</h4><p>查看本周食堂供应</p></div></div>
+            <div class="lab-item" onclick="app.openFeature('predict')"><div class="lab-icon">🔮</div><div class="lab-text"><h4>值班预估</h4><p>推算未来排班</p></div></div>
+        </div>
+        <div id="feat_query" class="lab-content"><div style="display:flex; gap:10px; margin-bottom:15px;"><input id="sInput" placeholder="输入姓名" style="flex:1; padding:10px; border:1px solid #ddd; border-radius:6px;" onkeydown="if(event.key==='Enter') app.search()"><button class="btn" style="background:var(--primary); color:white; border:none; padding:0 20px;" onclick="app.search()">查询</button></div><div id="sResultWrapper" style="max-height:400px; overflow-y:auto;"><div id="icsContainer"></div><div id="sResult"></div></div></div>
+        <div id="feat_menu" class="lab-content"><div id="menuList"></div></div>
+        <div id="feat_predict" class="lab-content"><p style="font-size:12px;color:#c2410c;background:#fff7ed;padding:10px;border-radius:6px;">⚠️ 仅供参考：基于已发布值班表最后一日的【初始排班人员】进行推算（已自动剔除换班/备勤影响）。</p><div style="display:flex; gap:10px; margin:15px 0;"><input id="pInput" placeholder="输入姓名" style="flex:1; padding:10px; border:1px solid #ddd; border-radius:6px;"><button class="btn" style="background:var(--primary); color:white;" onclick="app.predict()">预估</button></div><div id="pResult"></div></div>
+        <div id="feat_wip" class="lab-content" style="text-align:center; padding:40px 0;"><div style="font-size:40px;">🚧</div><div style="color:#64748b;">该功能后台暂时关闭<br>正在施工中...</div></div>
+    </div>
+</div>
+
+<script>
+window.app = {
+    api: '/api',
+    data: { schedules:{}, holidays:{}, labConfig:{} },
+    y: new Date().getFullYear(), m: new Date().getMonth()+1,
+    currentSearchResults: [],
+
+    async login() {
+        const p = document.getElementById('loginPass').value;
+        if(!p) return;
+        document.getElementById('loginMsg').innerText = "加载中...";
+        try {
+            const res = await fetch(this.api, { method:'POST', body:JSON.stringify({ action:'login', password:p }) });
+            const json = await res.json();
+            if(res.status === 200) {
+                this.data = json.data || {};
+                ['schedules','holidays'].forEach(k=>{if(!this.data[k])this.data[k]={}});
+                if(!this.data.labConfig) this.data.labConfig = {switches:{query:true,menu:true,predict:true}, menus:[]};
+                document.getElementById('loginOverlay').style.display = 'none';
+                this.render(); this.renderNotice();
+            } else { document.getElementById('loginMsg').innerText = "密码错误"; }
+        } catch(e) { document.getElementById('loginMsg').innerText = "网络连接失败"; }
+    },
+
+    render() {
+        document.getElementById('dateDisp').innerText = `${this.y}-${String(this.m).padStart(2,'0')}`;
+        const grid = document.getElementById('calGrid'); grid.innerHTML = '';
+        const firstDay = new Date(this.y, this.m-1, 1), daysInMonth = new Date(this.y, this.m, 0).getDate(), startEmpty = (firstDay.getDay() + 6) % 7;
+        for(let i=0; i<startEmpty; i++) grid.innerHTML += `<div class="cal-cell" style="background:#f8fafc"></div>`;
+        
+        // 简单安全的获取本地今天字符串的方法
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        
+        const hList = this.data.holidays[String(this.y)] || [];
+        for(let d=1; d<=daysInMonth; d++) {
+            const ds = `${this.y}-${String(this.m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const s = this.data.schedules[ds], isH = hList.includes(ds);
+            let html = `<div class="date-num"><span>${d}</span>${isH?'<span class="holiday-tag">假</span>':''}</div>`;
+            if(s) {
+                if(s.leader) html += `<div class="duty-tag tag-l">${s.leader}</div>`;
+                if(s.female) html += `<div class="duty-tag tag-f">${s.female}</div>`;
+                if(s.male) html += `<div class="duty-tag tag-m">${s.male}</div>`;
+                if(s.remark) html += `<div class="remark">${s.remark}</div>`;
+            }
+            const div = document.createElement('div');
+            div.className = `cal-cell ${ds===todayStr?'today':''} ${isH?'holiday':''}`;
+            div.innerHTML = html; grid.appendChild(div);
+        }
+    },
+
+    renderNotice() {
+        const t = this.data.notice;
+        if(t && t.trim()) { document.getElementById('noticeBar').style.display = 'flex'; document.getElementById('noticeText').innerText = t; } 
+        else { document.getElementById('noticeBar').style.display = 'none'; }
+    },
+
+    openLab() { document.getElementById('labModal').style.display = 'flex'; this.labBack(); },
+    labBack() { document.getElementById('labMenu').style.display = 'grid'; document.querySelectorAll('.lab-content').forEach(el => el.style.display = 'none'); document.getElementById('labBack').style.display = 'none'; document.getElementById('labTitle').innerText = '实验室功能'; },
+    openFeature(feat) {
+        const switches = this.data.labConfig.switches || {query:true, menu:true, predict:true};
+        document.getElementById('labMenu').style.display = 'none'; document.getElementById('labBack').style.display = 'block';
+        if (!switches[feat]) { document.getElementById('feat_wip').style.display = 'block'; document.getElementById('labTitle').innerText = '功能关闭'; return; }
+        document.getElementById(`feat_${feat}`).style.display = 'block';
+        if(feat === 'query') { document.getElementById('labTitle').innerText = '值班查询'; setTimeout(()=>document.getElementById('sInput').focus(), 100); }
+        else if(feat === 'menu') { document.getElementById('labTitle').innerText = '本周菜谱'; this.renderMenu(); }
+        else if(feat === 'predict') { document.getElementById('labTitle').innerText = '值班预估'; }
+    },
+
+    search() {
+        const v = document.getElementById('sInput').value.trim();
+        const r = document.getElementById('sResult'), icsDiv = document.getElementById('icsContainer');
+        r.innerHTML = ''; icsDiv.innerHTML = '';
+        if(!v) return;
+        this.currentSearchResults = [];
+        const weeks = ['周日','周一','周二','周三','周四','周五','周六'];
+        let count = 0;
+        Object.keys(this.data.schedules || {}).sort().reverse().forEach(k => {
+            const s = this.data.schedules[k];
+            if(s.leader?.includes(v) || s.female?.includes(v) || s.male?.includes(v)) {
+                this.currentSearchResults.push({date: k, data: s});
+                const w = weeks[new Date(k).getDay()], y = k.split('-')[0], isH = (this.data.holidays[y]||[]).includes(k);
+                r.innerHTML += `<div style="padding:10px; border-bottom:1px solid #eee;"><div style="font-weight:bold; color:var(--primary)">${k} <span style="color:#666;font-weight:normal;font-size:13px;">${w}</span>${isH?' <span style="color:red;font-size:12px;">(假)</span>':''}</div><div style="font-size:13px; margin-top:4px; color:#334155;"><span style="background:#f1f5f9;padding:1px 4px;">${s.leader===v?'带班':(s.female===v?'女值':'男值')}</span> 同组:${s.leader}/${s.female}/${s.male}</div>${s.remark ? `<div style="font-size:12px; color:#c2410c; margin-top:4px;">${s.remark}</div>` : ''}</div>`;
+                count++;
+            }
+        });
+        if(this.currentSearchResults.length > 0) icsDiv.innerHTML = `<button class="ics-btn" onclick="app.addToCalendar()">📅 导出未来值班日历 (含提醒)</button>`;
+        if(count===0) r.innerHTML = '<div style="text-align:center;padding:20px;color:#999">无记录</div>';
+    },
+    
+    addToCalendar() {
+        // 优化：仅导出未来（含今天）的值班
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        
+        // 过滤：日期 >= 今天
+        const targetList = this.currentSearchResults.filter(item => item.date >= todayStr);
+
+        if(!targetList.length) {
+            alert('当前没有未来的值班安排可导出');
+            return;
+        }
+
+        let ics = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//DutySystem//CN\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\n";
+        targetList.forEach(item => {
+            const [y,m,d] = item.date.split('-'); 
+            // 修正：日历事件结束时间必须+1天，且需要安全处理跨月/跨年
+            const nextDDate = new Date(y, m-1, parseInt(d)+1);
+            const ny = nextDDate.getFullYear();
+            const nm = String(nextDDate.getMonth()+1).padStart(2,'0');
+            const nd = String(nextDDate.getDate()).padStart(2,'0');
+            const nextDStr = `${ny}${nm}${nd}`;
+            
+            const s = item.data;
+            ics += `BEGIN:VEVENT\nDTSTART;VALUE=DATE:${item.date.replace(/-/g,'')}\nDTEND;VALUE=DATE:${nextDStr}\nSUMMARY:值班: ${s.leader} ${s.female} ${s.male}\nDESCRIPTION:带班:${s.leader}\\n女值:${s.female}\\n男值:${s.male}${s.remark?'\\n备注:'+s.remark:''}\nBEGIN:VALARM\nTRIGGER:-PT15H\nACTION:DISPLAY\nDESCRIPTION:明天有值班\nEND:VALARM\nEND:VEVENT\n`;
+        });
+        ics += "END:VCALENDAR";
+        const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([ics], {type:'text/calendar'})); link.download = "未来值班表.ics"; link.click();
+    },
+
+    // --- Predict Logic (Corrected) ---
+    predict() {
+        const name = document.getElementById('pInput').value.trim();
+        if(!name) return;
+        const resDiv = document.getElementById('pResult'); resDiv.innerHTML = '计算中...';
+        
+        // 1. 找人 & 类型
+        let type = null, pIdx = -1;
+        ['leader','female','male'].forEach(t => { const idx = this.data.personnel[t].findIndex(p=>p.name===name); if(idx !== -1) { type = t; pIdx = idx; } });
+        if(!type) { resDiv.innerHTML = `<div style="color:red;text-align:center;">未找到人员 [${name}]</div>`; return; }
+
+        // 2. 找最后排班
+        const dates = Object.keys(this.data.schedules).sort();
+        if(!dates.length) { resDiv.innerHTML = '暂无排班数据，无法预测'; return; }
+        const lastDateStr = dates[dates.length-1];
+        const [ly, lm, ld] = lastDateStr.split('-').map(Number);
+        const lastDate = new Date(ly, lm-1, ld);
+        
+        // 3. 辅助: 解析原始值班人
+        const getOriginalName = (nameInCell, remark) => {
+            if (!remark) return nameInCell;
+            // 匹配 【换】原名→新名 或 【备】原名→新名
+            const regex = /【(?:换|备)】\s*([^→]+)\s*→\s*([^\s]+)/g;
+            let match;
+            while ((match = regex.exec(remark)) !== null) {
+                if (match[2] === nameInCell) return match[1].trim(); 
+            }
+            return nameInCell;
+        };
+
+        // 4. 预测逻辑
+        if(type === 'leader') {
+            // 回溯找到最后一个“平日带班”和“假日带班”的【原始人】
+            let lastW_L=null, lastH_L=null;
+            for(let i=dates.length-1; i>=0; i--) {
+                const d = dates[i], s = this.data.schedules[d];
+                const y = d.split('-')[0], isH = (this.data.holidays[y]||[]).includes(d);
+                
+                const originalL = getOriginalName(s.leader, s.remark);
+                
+                if(isH && !lastH_L) lastH_L = originalL;
+                if(!isH && !lastW_L) lastW_L = originalL;
+                if(lastH_L && lastW_L) break;
+            }
+            this.showDualPrediction(resDiv, type, pIdx, lastW_L, lastH_L, lastDate);
+        } else {
+            // 值班员
+            const lastS = this.data.schedules[lastDateStr];
+            const lastVal = type==='female' ? getOriginalName(lastS.female, lastS.remark) : getOriginalName(lastS.male, lastS.remark);
+            this.showSinglePrediction(resDiv, type, pIdx, lastVal, lastDate);
+        }
+    },
+
+    showSinglePrediction(div, type, targetIdx, lastVal, startDate) {
+        const list = this.data.personnel[type];
+        const lastIdx = list.findIndex(p=>p.name===lastVal);
+        const startIdx = lastIdx === -1 ? 0 : (lastIdx + 1) % list.length;
+        const future = this.sim(startDate, 365, (d, isH) => true, list, startIdx, targetIdx);
+        div.innerHTML = this.formatRes(future, "值班员 (不分节假日)");
+    },
+
+    showDualPrediction(div, type, targetIdx, lastW, lastH, startDate) {
+        const list = this.data.personnel.leader;
+        
+        // 平日
+        const idxW = lastW ? (list.findIndex(p=>p.name===lastW)+1)%list.length : 0;
+        const resW = this.sim(startDate, 180, (d, isH) => !isH, list, idxW, targetIdx);
+        
+        // 假日
+        const idxH = lastH ? (list.findIndex(p=>p.name===lastH)+1)%list.length : 0;
+        const resH = this.sim(startDate, 365, (d, isH) => isH, list, idxH, targetIdx);
+
+        div.innerHTML = this.formatRes(resW, "平日带班") + this.formatRes(resH, "假日带班");
+    },
+
+    sim(startDate, daysLimit, conditionFn, list, currentIdx, targetIdx) {
+        let d = new Date(startDate); 
+        d.setDate(d.getDate() + 1); // 从排班结束的【后一天】开始算
+        let ptr = currentIdx;
+
+        for(let i=0; i<daysLimit; i++) {
+            // FIX: 之前使用 toISOString() 会因为时区导致日期回退1天
+            // 现在手动拼接本地年月日，确保逻辑准确
+            const y = d.getFullYear();
+            const m = String(d.getMonth()+1).padStart(2,'0');
+            const dayNum = String(d.getDate()).padStart(2,'0');
+            const ds = `${y}-${m}-${dayNum}`;
+            
+            const isH = (this.data.holidays[String(y)]||[]).includes(ds);
+            
+            if(conditionFn(ds, isH)) {
+                let p = list[ptr];
+                // 悬停检查
+                while((p.skips||[]).some(s=>ds>=s.start && ds<=s.end)) {
+                    ptr = (ptr + 1) % list.length;
+                    p = list[ptr];
+                    if(ptr === currentIdx) return {err: "全员悬停"}; 
+                }
+                if(ptr === targetIdx) return {date: ds};
+                ptr = (ptr + 1) % list.length;
+            }
+            d.setDate(d.getDate() + 1);
+        }
+        return {err: "超出预测范围 (可能未定义足够假日)"};
+    },
+
+    formatRes(res, title) {
+        const content = res.err ? `<span style="color:#94a3b8">${res.err}</span>` : `<span style="color:var(--primary);font-weight:bold;font-size:16px;">${res.date}</span>`;
+        return `<div style="margin-top:10px;border-bottom:1px dashed #eee;padding-bottom:5px;"><div style="font-size:12px;color:#64748b;">${title}</div><div style="margin-top:2px;">${content}</div></div>`;
+    },
+
+    renderMenu() {
+        const menus = this.data.labConfig.menus || [];
+        const days = ['周一','周二','周三','周四','周五'];
+        document.getElementById('menuList').innerHTML = days.map((d,i) => `<div class="menu-item"><span class="menu-day">${d}</span><span>${menus[i]||'暂无'}</span></div>`).join('');
+    },
+    changeMonth(d) { let m=this.m+d, y=this.y; if(m>12){m=1;y++}if(m<1){m=12;y--} this.y=y;this.m=m; this.render(); },
+    goToday() { this.y=new Date().getFullYear(); this.m=new Date().getMonth()+1; this.render(); }
+};
+</script>
+</body>
+</html>

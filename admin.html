@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>后台管理系统 (V37 修复版)</title>
+    <title>后台管理系统 (V37 终极修复版)</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <style>
         :root { 
@@ -283,7 +283,6 @@ window.app = {
         if(!this.data.holidays) this.data.holidays={};
         if(!this.data.schedules) this.data.schedules={};
         if(!this.data.logs) this.data.logs=[];
-        // 升级：增加 dailyMenus
         if(!this.data.labConfig) this.data.labConfig={switches:{query:true,menu:true,predict:true}};
         if(!this.data.labConfig.dailyMenus) this.data.labConfig.dailyMenus = {};
         if(!this.data.labConfig.switches) this.data.labConfig.switches = {query:true,menu:true,predict:true};
@@ -293,7 +292,7 @@ window.app = {
     toast(m) { const t=document.getElementById('toast'); t.innerText=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2000); },
     log(act, det) { this.data.logs.unshift({t:new Date().toLocaleString(), a:act, d:det}); if(this.data.logs.length>300)this.data.logs.pop(); this.save(); this.renderLogs(); },
     
-    // --- Lab Config (修复后的菜谱逻辑) ---
+    // --- Lab Config ---
     initLabConfig() {
         const c = this.data.labConfig || {};
         const s = c.switches || {query:true, menu:true, predict:true};

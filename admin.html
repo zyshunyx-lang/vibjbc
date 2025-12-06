@@ -1,12 +1,8 @@
-{
-type: uploaded file
-fileName: zyshunyx-lang/vibjbc/vibjbc-333ca6c4fa9facab8aa7c2c1a7427897c43bee61/admin.html
-fullContent:
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>后台管理系统 (V37 Stable)</title>
+    <title>后台管理系统 (V37 修复版)</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <style>
         :root { 
@@ -74,7 +70,6 @@ fullContent:
         
         .suspended-row { color: #94a3b8; background: #f8fafc; text-decoration: line-through; }
         .lab-switch-item { display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 10px; border-radius: 6px; margin-bottom: 10px; border: 1px solid #e2e8f0; }
-        .menu-day { border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px; }
         
         h4 { margin-top: 0; margin-bottom: 15px; color: #334155; font-size: 14px; border-left: 4px solid var(--primary); padding-left: 10px; }
         .icon-btn { border: none; background: none; padding: 2px 6px; font-size: 14px; color: #64748b; cursor: pointer; }
@@ -90,6 +85,7 @@ fullContent:
         <h2 style="color:var(--primary); margin-top:0;">后台管理</h2>
         <input type="password" id="adminPass" placeholder="输入管理密码" style="text-align:center; padding:10px;">
         <button class="primary" style="width:100%; margin-top:10px; padding:10px;" onclick="app.login()">登录</button>
+        <div id="loadError" style="color:red; font-size:12px; margin-top:10px;"></div>
     </div>
 </div>
 
@@ -179,7 +175,7 @@ fullContent:
             <div id="t-lab" class="tab-pane">
                 <h4>实验室功能开关</h4>
                 <div class="lab-switch-item"><span>值班查询</span><input type="checkbox" id="sw_query" onchange="app.saveLabSwitch()"></div>
-                <div class="lab-switch-item"><span>每周菜谱 (按天显示)</span><input type="checkbox" id="sw_menu" onchange="app.saveLabSwitch()"></div>
+                <div class="lab-switch-item"><span>每日菜谱</span><input type="checkbox" id="sw_menu" onchange="app.saveLabSwitch()"></div>
                 <div class="lab-switch-item"><span>值班预估</span><input type="checkbox" id="sw_predict" onchange="app.saveLabSwitch()"></div>
                 <hr style="border:0; border-top:1px dashed #eee; margin:20px 0;">
                 
@@ -238,6 +234,8 @@ fullContent:
 <div id="editModal" class="modal-overlay"><div class="modal-box"><h3 style="margin-top:0;">编辑人员</h3><input type="hidden" id="edId"><input type="hidden" id="edType"><label>姓名</label><input id="edName"><div id="leaderFields" style="display:none; gap:10px;"><div style="flex:1"><label>职务</label><input id="edJob"></div><div style="flex:1"><label>座机</label><input id="edLand"></div></div><label>手机</label><input id="edPhone"><div style="background:#f1f5f9; padding:10px; border-radius:6px; margin:10px 0;"><label style="color:#dc2626; font-size:12px;">轮空期 (在此期间不排班)</label><div id="skipList" style="margin-bottom:5px;"></div><div style="display:flex; gap:5px;"><input type="date" id="skipStart" style="margin:0;"><input type="date" id="skipEnd" style="margin:0;"><button class="danger" style="padding:4px 8px;" onclick="app.addSkip()">+</button></div></div><div style="display:flex; gap:10px; margin-top:10px;"><button style="flex:1" onclick="document.getElementById('editModal').style.display='none'">取消</button><button class="primary" style="flex:1" onclick="app.savePerson()">保存</button></div></div></div>
 
 <script>
+window.onerror = function(msg) { document.getElementById('loadError').innerText = "系统加载失败: " + msg; };
+
 window.app = {
     api: '/api', token: null,
     data: { personnel:{leader:[],female:[],male:[]}, holidays:{}, schedules:{}, labConfig:{}, logs:[] },
@@ -247,8 +245,8 @@ window.app = {
     init() { 
         document.getElementById('hYear').value = this.vy; 
         document.getElementById('genMonth').value = new Date().toISOString().slice(0,7);
-        // 初始化菜谱日期为今天
-        document.getElementById('menuDate').value = new Date().toISOString().slice(0,10);
+        const today = new Date().toISOString().slice(0,10);
+        document.getElementById('menuDate').value = today;
     },
     
     async login() {
@@ -267,7 +265,7 @@ window.app = {
                 document.getElementById('noticeInput').value = this.data.notice || '';
                 this.initLabConfig();
             } else alert('密码错误');
-        } catch(e) { alert('网络连接失败'); }
+        } catch(e) { alert('网络连接失败: ' + e.message); }
     },
     
     sanitizeData() {
@@ -285,27 +283,26 @@ window.app = {
         if(!this.data.holidays) this.data.holidays={};
         if(!this.data.schedules) this.data.schedules={};
         if(!this.data.logs) this.data.logs=[];
-        // 升级 labConfig 结构，增加 dailyMenus
-        if(!this.data.labConfig) this.data.labConfig={switches:{query:true,menu:true,predict:true}, dailyMenus:{}};
-        if(!this.data.labConfig.dailyMenus) this.data.labConfig.dailyMenus = {}; 
+        // 升级：增加 dailyMenus
+        if(!this.data.labConfig) this.data.labConfig={switches:{query:true,menu:true,predict:true}};
+        if(!this.data.labConfig.dailyMenus) this.data.labConfig.dailyMenus = {};
+        if(!this.data.labConfig.switches) this.data.labConfig.switches = {query:true,menu:true,predict:true};
     },
 
     async save() { try { await fetch(this.api, {method:'POST', body:JSON.stringify({action:'save', password:this.token, newData:this.data})}); } catch(e){} },
     toast(m) { const t=document.getElementById('toast'); t.innerText=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2000); },
     log(act, det) { this.data.logs.unshift({t:new Date().toLocaleString(), a:act, d:det}); if(this.data.logs.length>300)this.data.logs.pop(); this.save(); this.renderLogs(); },
     
-    // --- Lab Config (Updated for Daily Menus) ---
+    // --- Lab Config (修复后的菜谱逻辑) ---
     initLabConfig() {
         const c = this.data.labConfig || {};
         const s = c.switches || {query:true, menu:true, predict:true};
         document.getElementById('sw_query').checked = s.query;
         document.getElementById('sw_menu').checked = s.menu;
         document.getElementById('sw_predict').checked = s.predict;
-        // Load initial menu for default date
         this.loadMenuForDate();
     },
     async saveLabSwitch() {
-        // Only save switches, keep menus as is
         const switches = { 
             query: document.getElementById('sw_query').checked, 
             menu: document.getElementById('sw_menu').checked, 
@@ -341,7 +338,7 @@ window.app = {
     async deleteMenu() {
         const d = document.getElementById('menuDate').value;
         if(!d) return;
-        if(confirm(`确定删除 ${d} 的菜谱吗？`)) {
+        if(confirm('确定删除 '+d+' 的菜谱吗？')) {
             document.getElementById('menuContent').value = '';
             this.saveMenu();
         }
@@ -351,21 +348,21 @@ window.app = {
     async publishSchedule() { 
         if(!confirm("确认发布排班表到前台吗？")) return;
         await this.save(); 
-        this.log('发布排班', `${this.vy}-${this.vm}`); 
+        this.log('发布排班', this.vy+'-'+this.vm); 
         this.toast("✅ 排班已发布"); 
     },
     async saveNotice() { this.data.notice = document.getElementById('noticeInput').value; await this.save(); this.log('更新公告', this.data.notice); this.toast("✅ 公告已更新"); },
     clearNotice() { document.getElementById('noticeInput').value=""; this.saveNotice(); },
-    deleteCurrentMonth() { if(!confirm(`删除本月数据？`)) return; const p=`${this.vy}-${String(this.vm).padStart(2,'0')}`; Object.keys(this.data.schedules).forEach(k=>{if(k.startsWith(p))delete this.data.schedules[k]}); this.save(); this.renderCal(); this.log('删除月度', p); },
+    deleteCurrentMonth() { if(!confirm('删除本月数据？')) return; const p=this.vy+'-'+String(this.vm).padStart(2,'0'); Object.keys(this.data.schedules).forEach(k=>{if(k.startsWith(p))delete this.data.schedules[k]}); this.save(); this.renderCal(); this.log('删除月度', p); },
     
     downloadMonth() {
-        const mKey=`${this.vy}-${String(this.vm).padStart(2,'0')}`, rows=[];
+        const mKey=this.vy+'-'+String(this.vm).padStart(2,'0'), rows=[];
         const days=new Date(this.vy, this.vm, 0).getDate();
         const pl = this.data.personnel.leader;
         const findL = (n) => pl.find(p => p.name === n) || {};
 
         for(let d=1;d<=days;d++){
-            const ds=`${mKey}-${String(d).padStart(2,'0')}`, v=this.data.schedules[ds];
+            const ds=mKey+'-'+String(d).padStart(2,'0'), v=this.data.schedules[ds];
             if(v) {
                 const lInfo = findL(v.leader);
                 rows.push({
@@ -381,25 +378,25 @@ window.app = {
             }
         }
         if(!rows.length)return alert('无数据');
-        XLSX.writeFile(XLSX.utils.book_new(XLSX.utils.json_to_sheet(rows)), `值班表_${mKey}.xlsx`);
+        XLSX.writeFile(XLSX.utils.book_new(XLSX.utils.json_to_sheet(rows)), '值班表_'+mKey+'.xlsx');
     },
 
     // --- Calendar ---
-    updateDate() { document.getElementById('calMonthPicker').value = `${this.vy}-${String(this.vm).padStart(2,'0')}`; },
+    updateDate() { document.getElementById('calMonthPicker').value = this.vy+'-'+String(this.vm).padStart(2,'0'); },
     changeMonth(d) { let m=this.vm+d, y=this.vy; if(m>12){m=1;y++}if(m<1){m=12;y--} this.vy=y;this.vm=m; this.updateDate(); this.renderCal(); },
     onMonthPick() { const [y,m]=document.getElementById('calMonthPicker').value.split('-'); this.vy=+y; this.vm=+m; this.renderCal(); },
     renderCal() {
         const g=document.getElementById('calGrid'); g.innerHTML='';
-        ['一','二','三','四','五','六','日'].forEach(h=>g.innerHTML+=`<div class="cal-head">周${h}</div>`);
+        ['一','二','三','四','五','六','日'].forEach(h=>g.innerHTML+='<div class="cal-head">周'+h+'</div>');
         const fd=new Date(this.vy,this.vm-1,1), ld=new Date(this.vy,this.vm,0), off=(fd.getDay()+6)%7;
-        for(let i=0;i<off;i++) g.innerHTML+=`<div class="cal-cell empty"></div>`;
+        for(let i=0;i<off;i++) g.innerHTML+='<div class="cal-cell empty"></div>';
         const hl=this.data.holidays[String(this.vy)]||[];
         for(let d=1; d<=ld.getDate(); d++) {
-            const ds=`${this.vy}-${String(this.vm).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const ds=this.vy+'-'+String(this.vm).padStart(2,'0')+'-'+String(d).padStart(2,'0');
             const isH=hl.includes(ds), s=this.data.schedules[ds];
-            let h=`<div class="date-num"><span>${d}</span>${isH?'<span style="color:red">假</span>':''}</div>`;
-            if(s) h+=`<div class="pill l">${s.leader}</div><div class="pill f">${s.female}</div><div class="pill m">${s.male}</div>${s.remark?`<div class="remark-text">${s.remark}</div>`:''}`;
-            const c=document.createElement('div'); c.className=`cal-cell ${isH?'holiday':''}`; c.innerHTML=h;
+            let h='<div class="date-num"><span>'+d+'</span>'+(isH?'<span style="color:red">假</span>':'')+'</div>';
+            if(s) h+='<div class="pill l">'+s.leader+'</div><div class="pill f">'+s.female+'</div><div class="pill m">'+s.male+'</div>'+(s.remark?'<div class="remark-text">'+s.remark+'</div>':'');
+            const c=document.createElement('div'); c.className='cal-cell '+(isH?'holiday':''); c.innerHTML=h;
             c.onclick=()=>this.openSwap(ds, isH); g.appendChild(c);
         }
     },
@@ -412,9 +409,9 @@ window.app = {
         this.currentOrigin = {...s};
         const fill = (id, t, v) => {
             const list = this.data.personnel[t];
-            let html = `<option value="">(空)</option>`;
-            if(v && !list.find(p=>p.name===v)) html += `<option value="${v}" selected>${v} (历史)</option>`;
-            html += list.map(p => `<option value="${p.name}" ${p.name===v?'selected':''}>${p.name}</option>`).join('');
+            let html = '<option value="">(空)</option>';
+            if(v && !list.find(p=>p.name===v)) html += '<option value="'+v+'" selected>'+v+' (历史)</option>';
+            html += list.map(p => '<option value="'+p.name+'" '+(p.name===v?'selected':'')+'>'+p.name+'</option>').join('');
             document.getElementById(id).innerHTML = html;
         };
         fill('swL','leader',s.leader); fill('swF','female',s.female); fill('swM','male',s.male);
@@ -423,7 +420,7 @@ window.app = {
     },
     renderSmartStandby(y, m, isTargetHoliday) {
         const pool = document.getElementById('standbyPool'); pool.innerHTML='';
-        const prefix = `${y}-${String(m).padStart(2,'0')}`;
+        const prefix = y+'-'+String(m).padStart(2,'0');
         const dates = Object.keys(this.data.schedules).filter(k => k.startsWith(prefix)).sort();
         const hlKey = String(y); const hList = this.data.holidays[hlKey] || [];
         let lastL_W=null, lastL_H=null, lastF=null, lastM=null;
@@ -448,7 +445,7 @@ window.app = {
                 if(t==='l')document.getElementById('swL').value=p.name; if(t==='f')document.getElementById('swF').value=p.name; if(t==='m')document.getElementById('swM').value=p.name;
                 const oldName = t==='l'?this.currentOrigin.leader : (t==='f'?this.currentOrigin.female:this.currentOrigin.male);
                 if(oldName && oldName !== p.name) {
-                    const tag = `【备】${oldName}→${p.name}`; let r = document.getElementById('swR').value;
+                    const tag = '【备】'+oldName+'→'+p.name; let r = document.getElementById('swR').value;
                     if(!r.includes(tag)) r = r ? (r+' '+tag) : tag; document.getElementById('swR').value = r;
                 }
             }; pool.appendChild(b);
@@ -462,9 +459,9 @@ window.app = {
         let r=document.getElementById('swR').value;
         const old=this.currentOrigin;
         const changes=[];
-        const check = (oldV, newV) => { if(oldV && oldV !== newV) { const p = `${oldV}→${newV}`; if(!r.includes(p)) changes.push(p); } };
+        const check = (oldV, newV) => { if(oldV && oldV !== newV) { const p = oldV+'→'+newV; if(!r.includes(p)) changes.push(p); } };
         check(old.leader, nL); check(old.female, nF); check(old.male, nM);
-        if(changes.length>0) { const tag = `【换】${changes.join(' ')}`; r = r ? (r+' '+tag) : tag; }
+        if(changes.length>0) { const tag = '【换】'+changes.join(' '); r = r ? (r+' '+tag) : tag; }
         this.data.schedules[ds]={leader:nL, female:nF, male:nM, remark:r};
         this.log('换班', ds); this.save(); this.renderCal(); document.getElementById('swapModal').style.display='none';
     },
@@ -472,22 +469,22 @@ window.app = {
     // --- Person ---
     renderPersonList() {
         const t=document.getElementById('manageType').value, l=this.data.personnel[t];
-        let h=`<div class="table-container"><table><thead><tr><th>姓名</th>${t==='leader'?'<th>职务</th><th>座机</th>':''}<th>手机</th><th>操作</th></tr></thead><tbody>`;
+        let h='<div class="table-container"><table><thead><tr><th>姓名</th>'+(t==='leader'?'<th>职务</th><th>座机</th>':'')+'<th>手机</th><th>操作</th></tr></thead><tbody>';
         l.forEach((p,i)=>{
             const hasActiveSkip = (p.skips||[]).some(s => { const now = new Date().toISOString().split('T')[0]; return s.end >= now; });
-            const skipRange = (p.skips||[]).map(s=>`${s.start}~${s.end}`).join(' ');
-            h+=`<tr class="${hasActiveSkip?'suspended-row':''}">
-                <td>${p.name}${hasActiveSkip?`<br><small style="color:red">🚫${skipRange}</small>`:''}</td>
-                ${t==='leader'?`<td>${p.job||'-'}</td><td>${p.landline||'-'}</td>`:''}
-                <td>${p.phone||'-'}</td>
-                <td>
-                    <button class="icon-btn" title="上移" onclick="app.movePerson('${t}',${i},-1)">▲</button>
-                    <button class="icon-btn" title="下移" onclick="app.movePerson('${t}',${i},1)">▼</button>
-                    <button class="icon-btn" onclick="app.editPerson(${i})">✎</button> 
-                    <button class="icon-btn" style="color:red" onclick="app.delPerson('${t}',${i})">×</button>
-                </td></tr>`;
+            const skipRange = (p.skips||[]).map(s=>s.start+'~'+s.end).join(' ');
+            h+='<tr class="'+(hasActiveSkip?'suspended-row':'')+'">' +
+                '<td>'+p.name+(hasActiveSkip?'<br><small style="color:red">🚫'+skipRange+'</small>':'')+'</td>' +
+                (t==='leader'?'<td>'+(p.job||'-')+'</td><td>'+(p.landline||'-')+'</td>':'') +
+                '<td>'+(p.phone||'-')+'</td>' +
+                '<td>' +
+                    '<button class="icon-btn" title="上移" onclick="app.movePerson(\''+t+'\','+i+',-1)">▲</button>' +
+                    '<button class="icon-btn" title="下移" onclick="app.movePerson(\''+t+'\','+i+',1)">▼</button>' +
+                    '<button class="icon-btn" onclick="app.editPerson('+i+')">✎</button>' +
+                    '<button class="icon-btn" style="color:red" onclick="app.delPerson(\''+t+'\','+i+')">×</button>' +
+                '</td></tr>';
         });
-        document.getElementById('personList').innerHTML=h+`</tbody></table></div>`;
+        document.getElementById('personList').innerHTML=h+'</tbody></table></div>';
         this.fillSelects();
     },
     movePerson(t, i, d) { 
@@ -495,7 +492,8 @@ window.app = {
         const l=this.data.personnel[t], dest=i+d; 
         if(dest>=0 && dest<l.length){ [l[i],l[dest]]=[l[dest],l[i]]; this.save(); this.renderPersonList(); } 
     },
-    editPerson(i=null) {
+    editPerson(i) {
+        if(i===undefined) i = null;
         const t=document.getElementById('manageType').value;
         document.getElementById('editModal').style.display='flex';
         document.getElementById('edType').value=t; document.getElementById('edId').value=i!==null?i:'new';
@@ -507,7 +505,7 @@ window.app = {
         this.renderSkips();
     },
     addSkip() { const s=document.getElementById('skipStart').value, e=document.getElementById('skipEnd').value; if(s&&e) { this.tempSkips.push({start:s, end:e}); this.renderSkips(); } },
-    renderSkips() { document.getElementById('skipList').innerHTML = this.tempSkips.map((s,i) => `<span style="background:#fee2e2; padding:2px 5px; border-radius:4px; font-size:11px; margin-right:5px;">${s.start}~${s.end} <b style="cursor:pointer" onclick="app.removeSkip(${i})">×</b></span>`).join(''); },
+    renderSkips() { document.getElementById('skipList').innerHTML = this.tempSkips.map((s,i) => '<span style="background:#fee2e2; padding:2px 5px; border-radius:4px; font-size:11px; margin-right:5px;">'+s.start+'~'+s.end+' <b style="cursor:pointer" onclick="app.removeSkip('+i+')">×</b></span>').join(''); },
     removeSkip(i) { this.tempSkips.splice(i,1); this.renderSkips(); },
     savePerson() {
         if(!confirm("确认保存人员信息变更？")) return;
@@ -516,17 +514,17 @@ window.app = {
         const p={
             name:n, 
             phone:document.getElementById('edPhone').value, 
-            remark:document.getElementById('edRem')?.value || '',
+            remark:'',
             skips: JSON.parse(JSON.stringify(this.tempSkips))
         };
         if(t==='leader'){ p.job=document.getElementById('edJob').value; p.landline=document.getElementById('edLand').value; }
         if(id==='new') this.data.personnel[t].push(p); else this.data.personnel[t][id]=p;
-        this.log('编辑人员', `${t}:${n}`); this.save(); this.renderPersonList(); document.getElementById('editModal').style.display='none';
+        this.log('编辑人员', t+':'+n); this.save(); this.renderPersonList(); document.getElementById('editModal').style.display='none';
     },
     delPerson(t,i) { if(confirm('确认删除该人员？')) { this.data.personnel[t].splice(i,1); this.log('删除人员', t); this.save(); this.renderPersonList(); } },
     
     // --- Gen ---
-    fillSelects() { const f=(id,t)=>document.getElementById(id).innerHTML=this.data.personnel[t].map(p=>`<option value="${p.name}">${p.name}</option>`).join(''); f('slW','leader');f('slH','leader');f('sf','female');f('sm','male'); },
+    fillSelects() { const f=(id,t)=>document.getElementById(id).innerHTML=this.data.personnel[t].map(p=>'<option value="'+p.name+'">'+p.name+'</option>').join(''); f('slW','leader');f('slH','leader');f('sf','female');f('sm','male'); },
 
     generate() {
         const ms=document.getElementById('genMonth').value; if(!ms)return alert('选月份');
@@ -537,77 +535,76 @@ window.app = {
         
         const isSkipped = (p, dateStr) => {
             if (!p || !p.skips || !Array.isArray(p.skips)) return false;
-            return p.skips。some(s => dateStr >= s.start && dateStr <= s.end);
+            return p。skips。some(s => dateStr >= s.start && dateStr <= s。end);
         };
         
-        const pick=(list, start, dateStr)=>{
+        const pick=(list， start, dateStr)=>{
             let c=start， cnt=0; 
             while(cnt<list.length){ 
                 const p=list[c%list.length]; 
                 if(!isSkipped(p， dateStr)) return {name:p.name， 下一处:(c+1)%list.length}; 
-                this。log('生成过滤'， `${dateStr} 跳过 ${p。name} (处于轮空期)`);
+                this。log('生成过滤'， dateStr+' 跳过 '+p。name+' (处于轮空期)');
                 c++; cnt++; 
             } 
-            return {name:'无可用'， 下一处:c};
+            return {name:'无可用', next:c};
         };
 
         if(!pL。length) return alert('人员不足');
         
         for(let d=1;d<=days;d++) {
-            const ds=`${y}-${String(m)。padStart(2，'0')}-${String(d)。padStart(2，'0')}`， isH=hl。includes(ds);
+            const ds=y+'-'+String(m)。padStart(2，'0')+'-'+String(d)。padStart(2，'0')， isH=hl。includes(ds);
             let l; 
-            if(isH){ const r=pick(pL,ih,ds); l=r.name; ih=r.next; } 
+            if(isH){ const r=pick(pL，ih，ds); l=r。name; ih=r。下一处; } 
             else { const r=pick(pL，iw，ds); l=r。name; iw=r。下一处; }
-            const f=pick(pF，ife，ds); ife=f.下一处; 
-            const ma=pick(pM，ima，ds); ima=ma。下一处;
+            const f=pick(pF，ife，ds); ife=f。下一处; 
+            const ma=pick(pM,ima,ds); ima=ma.next;
 
             const finalCheck = (name， list) => {
-                 const p = list。find(x => x。name === name);
+                 const p = list。find(x => x.name === name);
                  if(p && isSkipped(p， ds)) {
-                     this.log('严重警告'， `${ds} 异常排入轮空人员 ${name}，请检查数据`);
-                     return `${name}(轮空异常)`;
+                     this.log('严重警告'， ds+' 异常排入轮空人员 '+name+'，请检查数据');
+                     return name+'(轮空异常)';
                  }
                  return name;
             };
 
-            const lFinal = finalCheck(l， pL);
-            const fFinal = finalCheck(f.name, pF);
+            const lFinal = finalCheck(l, pL);
+            const fFinal = finalCheck(f。name， pF);
             const mFinal = finalCheck(ma。name， pM);
 
-            this。data。schedules[ds]={leader:lFinal， female:fFinal， male:mFinal, remark:''};
+            this.data.schedules[ds]={leader:lFinal, female:fFinal, male:mFinal, remark:''};
         }
-        this.renderCal(); 
-        this.toast('⚡ 预览已生成');
-    },
+        this。renderCal(); 
+        this。toast('⚡ 预览已生成');
+    }，
 
     // --- Holiday ---
-    renderHoliday() { const y=document.getElementById('hYear')。value， l=this。data。holidays[y]||[]; document.getElementById('holidayChips')。innerHTML=l。sort()。map(d=>`<div style="background:white;border:1px solid #f87171;padding:2px 6px;border-radius:4px;font-size:11px;color:#dc2626;">${d。substring(5)} <span onclick="app.delHoliday('${y}','${d}')" style="cursor:pointer;font-weight:bold">&times;</span></div>`)。join(''); }，
-    addHolidayRange() { const y=document.getElementById('hYear')。value， s=document。getElementById('hStart')。value， e=document.getElementById('hEnd')。value; if(!s||!e)return; let d=new Date(s)， en=new Date(e)， c=0; if(!this。data。holidays[y])this。data。holidays[y]=[]; while(d<=en){ const k=d。toISOString()。slice(0，10); if(!this.data.holidays[y]。includes(k)){this。data。holidays[y]。push(k);c++} d。setDate(d。getDate()+1); } this。log('添加假日'， s); this。save(); this.renderHoliday(); }，
-    delHoliday(y，d) { this。data。holidays[y]=this。data。holidays[y]。filter(x=>x!==d); this。log('删除假日'， d); this。save(); this.renderHoliday(); }，
-    importGlobalData(inp) { const f=inp。文件[0]; const r=new FileReader(); r。onload=e=>{ try{this。data=JSON。parse(e。target。result);this.save();this。log('数据恢复'，'full backup');alert('恢复成功，即将刷新');location.reload();}catch(err){alert('格式错误');}}; r。readAsText(f); },
-    importHistory(inp) { const f=inp.files[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{ const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'}), rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]); let c=0; rows.forEach(row => { let d=row['日期']; if(typeof d==='number')d=new Date(Math.round((d-25569)*86400*1000)).toISOString().slice(0,10); if(d && d.match(/^\d{4}-\d{2}-\d{2}$/)) { this.data.schedules[d]={leader:row['带班领导']||'', female:row['女值班员']||'', male:row['男值班员']||'', remark:row['备注']||''}; c++; } }); this.log('历史导入', c); this.save(); this.renderCal(); inp.value=''; }; r.readAsArrayBuffer(f); },
-    exportData() { const b=new Blob([JSON。stringify(this。data)]，{输入:'application/json'})， a=document.createElement('a'); a.href=URL.createObjectURL(b); a。download='backup.json'; a.click(); }，
-    renderLogs() { const b=document。querySelector('#logTable tbody'); b。innerHTML=this。data。logs。map(l=>`<tr><td style="color:#666;font-size:11px;">${l。t}</td><td><strong>${l。a}</strong></td><td>${l。d}</td></tr>`)。join(''); }，
-    clearLogs() { this。data。logs=[]; this。save(); this.renderLogs(); }，
-    tab(id) { document。querySelectorAll('.tab')。forEach(t=>t。classList。remove('active')); event.currentTarget.classList。add('active'); document。querySelectorAll('.tab-pane')。forEach(p=>p.classList.remove('active')); document.getElementById(id)。classList。add('active'); }，
-    downloadTemplate(t) { const d = t==='person' ? [{"人员类型":"带班领导","姓名":"张三","职务":"处长","座机":"8001","手机":"139"}] : [{"日期":"2025-01-01"}]; XLSX.writeFile(XLSX.utils.book_new(XLSX.utils.json_to_sheet(d)), "模板.xlsx"); },
+    renderHoliday() { const y=document.getElementById('hYear').value, l=this.data.holidays[y]||[]; document.getElementById('holidayChips').innerHTML=l.sort().map(d=>'<div style="background:white;border:1px solid #f87171;padding:2px 6px;border-radius:4px;font-size:11px;color:#dc2626;">'+d.substring(5)+' <span onclick="app.delHoliday(\''+y+'\',\''+d+'\')" style="cursor:pointer;font-weight:bold">&times;</span></div>').join(''); },
+    addHolidayRange() { const y=document。getElementById('hYear')。value， s=document。getElementById('hStart')。value， e=document。getElementById('hEnd')。value; if(!s||!e)return; let d=new Date(s)， en=new Date(e)， c=0; if(!this。data。holidays[y])this。data。holidays[y]=[]; while(d<=en){ const k=d。toISOString()。slice(0，10); if(!this。data。holidays[y]。includes(k)){this。data。holidays[y]。push(k);c++} d。setDate(d。getDate()+1); } this。log('添加假日'， s); this。save(); this.renderHoliday(); }，
+    delHoliday(y，d) { this。data。holidays[y]=this.data。holidays[y]。filter(x=>x!==d); this。log('删除假日'， d); this。save(); this。renderHoliday(); }，
+    importGlobalData(inp) { const f=inp.文件[0]; const r=new FileReader(); r.onload=e=>{ try{this.data=JSON.parse(e.target.result);this.save();this.log('数据恢复','full backup');alert('恢复成功，即将刷新');location.reload();}catch(err){alert('格式错误');}}; r.readAsText(f); },
+    importHistory(inp) { const f=inp.文件[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{ const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'}), rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]); let c=0; rows.forEach(row => { let d=row['日期']; if(typeof d==='number')d=new Date(Math.round((d-25569)*86400*1000)).toISOString().slice(0,10); if(d && d.match(/^\d{4}-\d{2}-\d{2}$/)) { this.data.schedules[d]={leader:row['带班领导']||'', female:row['女值班员']||'', male:row['男值班员']||'', remark:row['备注']||''}; c++; } }); this.log('历史导入', c); this.save(); this.renderCal(); inp.value=''; }; r.readAsArrayBuffer(f); },
+    exportData() { const b=new Blob([JSON。stringify(this。data)]，{输入:'application/json'})， a=document.createElement('a'); a。href=URL。createObjectURL(b); a。download='backup.json'; a.click(); }，
+    renderLogs() { const b=document。querySelector('#logTable tbody'); b。innerHTML=this。data。logs。map(l=>'<tr><td style="color:#666;font-size:11px;">'+l。t+'</td><td><strong>'+l。a+'</strong></td><td>'+l。d+'</td></tr>')。join(''); }，
+    clearLogs() { this.data.logs=[]; this.save(); this.renderLogs(); },
+    tab(id) { document。querySelectorAll('.tab')。forEach(t=>t.classList。remove('active')); event.currentTarget.classList。add('active'); document。querySelectorAll('.tab-pane')。forEach(p=>p.classList。remove('active')); document.getElementById(id)。classList。add('active'); }，
+    downloadTemplate(t) { const d = t==='person' ? [{"人员类型":"带班领导","姓名":"张三"，"职务":"处长","座机":"8001"，"手机":"139"}] : [{"日期":"2025-01-01"}]; XLSX。writeFile(XLSX。utils。book_new(XLSX。utils。json_to_sheet(d))， "模板.xlsx"); },
     importExcel(inp， 输入) {
-        const f=inp.files[0]; if(!f)return;
+        const f=inp。文件[0]; if(!f)return;
         const r=new FileReader();
-        r。onload=e=>{
-            const wb=XLSX。read(new Uint8Array(e。target。result)，{type:'array'})， rows=XLSX。utils。sheet_to_json(wb。Sheets[wb。SheetNames[0]]);
+        r.onload=e=>{
+            const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'}), rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
             let c=0;
             if(type==='person') {
                 const map={'带班领导':'leader'，'女值班员':'female'，'男值班员':'male'};
                 rows。forEach(r=>{ const t=map[r['人员类型']]; if(t){this。data。personnel[t]。push({name:r['姓名']，phone:r['手机']，job:r['职务']，landline:r['座机']，remark:r['备注']，skips:[]});c++} });
             }
-            this。log('导入人员'， c+'条'); this。save(); this。renderPersonList(); inp。value=''; alert(`导入 ${c} 条`);
-        }; r.readAsArrayBuffer(f);
-    }，
-    changePass(type) { const v = 输入==='admin'?document。getElementById('newAdmin')。value : document。getElementById('newView')。value; if(!v) return; if(confirm(`修改${type==='admin'?'管理':'查看'}密码？`)) fetch(this。api， {method:'POST', body:JSON.stringify({action:'change_pass'， password:this。token， [输入==='admin'?'newAdminPass':'newViewPass']:v})})。键，然后(()=>{alert('成功');}); }
+            this。log('导入人员'， c+'条'); this。save(); this。renderPersonList(); inp。value=''; alert('导入 '+c+' 条');
+        }; r。readAsArrayBuffer(f);
+    },
+    changePass(type) { const v = 输入==='admin'?document。getElementById('newAdmin')。value : document。getElementById('newView')。value; if(!v) return; if(confirm('修改'+(type==='admin'?'管理':'查看')+'密码？')) fetch(this。api, {method:'POST'， body:JSON。stringify({action:'change_pass'， password:this。token， [type==='admin'?'newAdminPass':'newViewPass']:v})})。键，然后(()=>{alert('成功');}); }
 };
-window。onload=()=>app.init();
+window。onload=()=>app。init();
 </script>
 </body>
 </html>
-}

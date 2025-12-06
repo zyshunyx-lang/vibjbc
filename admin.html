@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>后台管理系统 (V37 终极修复版)</title>
+    <title>后台管理系统 (V38 Stable)</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <style>
         :root { 
@@ -222,9 +222,21 @@
                 <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                     <strong>操作日志</strong><button class="danger" style="padding:2px 8px;" onclick="app.clearLogs()">清空</button>
                 </div>
-                <div class="table-container" style="max-height:500px; overflow-y:auto;">
+                <div class="table-container" style="max-height:200px; overflow-y:auto; margin-bottom:20px;">
                     <table id="logTable"><tbody></tbody></table>
                 </div>
+
+                <hr style="border:0; border-top:1px dashed #cbd5e1; margin:20px 0;">
+                <h4>版本发布管理</h4>
+                <div style="background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:15px;">
+                    <div style="display:flex; gap:5px; margin-bottom:10px;">
+                        <input id="vVer" placeholder="版本号 (如 V2.2)" style="flex:1">
+                        <input type="date" id="vDate" style="width:130px;">
+                    </div>
+                    <textarea id="vDesc" rows="3" placeholder="更新内容描述..." style="margin-bottom:10px;"></textarea>
+                    <button class="primary" style="width:100%" onclick="app.addVersion()">发布新版本</button>
+                </div>
+                <div id="versionList" style="margin-top:15px;"></div>
             </div>
         </div>
     </div>
@@ -238,7 +250,7 @@ window.onerror = function(msg) { document.getElementById('loadError').innerText 
 
 window.app = {
     api: '/api', token: null,
-    data: { personnel:{leader:[],female:[],male:[]}, holidays:{}, schedules:{}, labConfig:{}, logs:[] },
+    data: { personnel:{leader:[],female:[],male:[]}, holidays:{}, schedules:{}, labConfig:{}, logs:[], versions:[] },
     vy: new Date().getFullYear(), vm: new Date().getMonth()+1,
     tempSkips: [], currentOrigin: {},
 
@@ -247,6 +259,7 @@ window.app = {
         document.getElementById('genMonth').value = new Date().toISOString().slice(0,7);
         const today = new Date().toISOString().slice(0,10);
         document.getElementById('menuDate').value = today;
+        document.getElementById('vDate').value = today;
     },
     
     async login() {
@@ -261,7 +274,7 @@ window.app = {
                 this.sanitizeData(); 
                 this.initDataSafe();
                 document.getElementById('loginLayer').style.display='none';
-                this.renderCal(); this.renderPersonList(); this.renderHoliday(); this.fillSelects(); this.renderLogs();
+                this.renderCal(); this.renderPersonList(); this.renderHoliday(); this.fillSelects(); this.renderLogs(); this.renderVersions();
                 document.getElementById('noticeInput').value = this.data.notice || '';
                 this.initLabConfig();
             } else alert('密码错误');
@@ -283,6 +296,7 @@ window.app = {
         if(!this.data.holidays) this.data.holidays={};
         if(!this.data.schedules) this.data.schedules={};
         if(!this.data.logs) this.data.logs=[];
+        if(!this.data.versions) this.data.versions=[]; // 版本信息初始化
         if(!this.data.labConfig) this.data.labConfig={switches:{query:true,menu:true,predict:true}};
         if(!this.data.labConfig.dailyMenus) this.data.labConfig.dailyMenus = {};
         if(!this.data.labConfig.switches) this.data.labConfig.switches = {query:true,menu:true,predict:true};
@@ -292,6 +306,46 @@ window.app = {
     toast(m) { const t=document.getElementById('toast'); t.innerText=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2000); },
     log(act, det) { this.data.logs.unshift({t:new Date().toLocaleString(), a:act, d:det}); if(this.data.logs.length>300)this.data.logs.pop(); this.save(); this.renderLogs(); },
     
+    // --- Version Management ---
+    renderVersions() {
+        const list = this.data.versions || [];
+        let html = '';
+        list.forEach((v, i) => {
+            html += `<div style="background:#f8fafc; border:1px solid #e2e8f0; padding:10px; border-radius:6px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                    <div style="font-weight:bold; color:var(--primary); font-size:13px;">${v.ver} <span style="color:#64748b; font-weight:normal; margin-left:5px;">${v.date}</span></div>
+                    <div style="font-size:12px; color:#334155; white-space:pre-wrap; margin-top:4px;">${v.desc}</div>
+                </div>
+                <button class="danger" style="padding:2px 6px; font-size:11px;" onclick="app.delVersion(${i})">删除</button>
+            </div>`;
+        });
+        document.getElementById('versionList').innerHTML = html || '<div style="color:#94a3b8; font-size:12px; text-align:center;">暂无版本信息</div>';
+    },
+    async addVersion() {
+        const ver = document.getElementById('vVer').value.trim();
+        const date = document.getElementById('vDate').value;
+        const desc = document.getElementById('vDesc').value.trim();
+        if(!ver || !date || !desc) return alert('请填写完整版本信息');
+        
+        if(!this.data.versions) this.data.versions = [];
+        this.data.versions.unshift({ver, date, desc});
+        
+        document.getElementById('vVer').value = '';
+        document.getElementById('vDesc').value = '';
+        
+        this.log('发布版本', ver);
+        await this.save();
+        this.renderVersions();
+        this.toast('版本发布成功');
+    },
+    async delVersion(i) {
+        if(!confirm('确认删除该版本记录？')) return;
+        this.data.versions.splice(i, 1);
+        this.log('删除版本', 'index: '+i);
+        await this.save();
+        this.renderVersions();
+    },
+
     // --- Lab Config ---
     initLabConfig() {
         const c = this.data.labConfig || {};

@@ -203,44 +203,44 @@
         .month-cell.holiday { background: #fef2f2; }
         .m-date-row { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 4px; font-size: 14px; }
         .m-name { font-size: 12px; padding: 2px 4px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 1px; }
-        。m-name.l { background: #e0e7ff; color: #3730a3; }
-        。m-name.f { background: #fce7f3; color: #9d174d; }
-        。m-name.m { background: #dcfce7; color: #166534; }
-        。m-remark { font-size: 10px; color: #c2410c; border-top: 1px dashed #e2e8f0; margin-top: auto; padding-top: 2px; }
+        .m-name.l { background: #e0e7ff; color: #3730a3; }
+        .m-name.f { background: #fce7f3; color: #9d174d; }
+        .m-name.m { background: #dcfce7; color: #166534; }
+        .m-remark { font-size: 10px; color: #c2410c; border-top: 1px dashed #e2e8f0; margin-top: auto; padding-top: 2px; }
 
         /* --- 移动端适配 --- */
         @media (max-width: 768px) {
             body { height: auto; overflow-y: auto; }
-            。app-header { font-size: 18px; padding: 12px; position: sticky; top: 0; z-index: 100; }
-            。main-container { flex-direction: column; padding: 10px; gap: 15px; height: auto; overflow: visible; display: block; }
-            。info-panel { width: 100%; max-height: none; height: auto; border-radius: 16px; padding: 0; margin-bottom: 15px; }
-            。date-header { padding: 15px; border-right: none; border-bottom: 1px dashed var(--border); display: flex; flex-direction: row; justify-content: center; align-items: baseline; gap: 10px; }
-            。date-big { font-size: 36px; margin: 0; }
-            。week-day { font-size: 16px; }
-            。date-full { display: inline-block; font-size: 13px; margin-left: 5px; } 
-            。info-content { padding: 15px; height: auto; }
-            。calendar-panel { width: 100%; border-radius: 16px; flex: none; height: auto; overflow: visible; }
-            。cal-toolbar { padding: 10px 12px; }
-            。cal-grid-wrapper { padding: 0 8px 8px 8px; overflow: visible; height: auto; }
-            。month-selector { font-size: 15px; gap: 8px; }
-            。cal-body { gap: 4px; } 
-            。cal-cell { aspect-ratio: unset; height: 34px; border-radius: 6px; }
-            。date-num { font-size: 16px; }
-            。cal-cell.today-cell::after { top: 3px; right: 3px; width: 4px; height: 4px; }
-            。cal-head { margin-bottom: 5px; }
-            。cal-head div { padding: 5px 0; font-size: 11px; }
-            。func-bar { padding: 10px; gap: 10px; }
-            。func-btn { font-size: 13px; padding: 10px 0; }
+            .app-header { font-size: 18px; padding: 12px; position: sticky; top: 0; z-index: 100; }
+            .main-container { flex-direction: column; padding: 10px; gap: 15px; height: auto; overflow: visible; display: block; }
+            .info-panel { width: 100%; max-height: none; height: auto; border-radius: 16px; padding: 0; margin-bottom: 15px; }
+            .date-header { padding: 15px; border-right: none; border-bottom: 1px dashed var(--border); display: flex; flex-direction: row; justify-content: center; align-items: baseline; gap: 10px; }
+            .date-big { font-size: 36px; margin: 0; }
+            .week-day { font-size: 16px; }
+            .date-full { display: inline-block; font-size: 13px; margin-left: 5px; } 
+            .info-content { padding: 15px; height: auto; }
+            .calendar-panel { width: 100%; border-radius: 16px; flex: none; height: auto; overflow: visible; }
+            .cal-toolbar { padding: 10px 12px; }
+            .cal-grid-wrapper { padding: 0 8px 8px 8px; overflow: visible; height: auto; }
+            .month-selector { font-size: 15px; gap: 8px; }
+            .cal-body { gap: 4px; } 
+            .cal-cell { aspect-ratio: unset; height: 34px; border-radius: 6px; }
+            .date-num { font-size: 16px; }
+            .cal-cell.today-cell::after { top: 3px; right: 3px; width: 4px; height: 4px; }
+            .cal-head { margin-bottom: 5px; }
+            .cal-head div { padding: 5px 0; font-size: 11px; }
+            .func-bar { padding: 10px; gap: 10px; }
+            .func-btn { font-size: 13px; padding: 10px 0; }
             /* 整月视图移动端 */
-            。month-view-grid { grid-template-columns: repeat(1, 1fr); gap: 10px; background: transparent; border: none; }
-            。month-head { display: none; }
-            。month-cell { border-radius: 8px; border: 1px solid #e2e8f0; min-height: 0; }
-            。m-date-row { margin-bottom: 8px; border-bottom: 1px dashed #eee; padding-bottom: 5px; }
+            .month-view-grid { grid-template-columns: repeat(1, 1fr); gap: 10px; background: transparent; border: none; }
+            .month-head { display: none; }
+            .month-cell { border-radius: 8px; border: 1px solid #e2e8f0; min-height: 0; }
+            .m-date-row { margin-bottom: 8px; border-bottom: 1px dashed #eee; padding-bottom: 5px; }
         }
 
         /* 登录层 */
         #loginOverlay { position: fixed; inset: 0; background: #f8fafc; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        。login-box { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); text-align: center; width: 320px; border: 1px solid var(--border); }
+        .login-box { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); text-align: center; width: 320px; border: 1px solid var(--border); }
     </style>
 </head>
 <body>
@@ -254,7 +254,7 @@
     </div>
 </div>
 
-<div class="app-header">值班表查看器 (V39.4)</div>
+<div class="app-header">值班表查看器 (V40.3)</div>
 
 <div class="main-container">
     <div class="info-panel">
@@ -575,13 +575,13 @@ window.app = {
     },
 
     predict() {
-        const name = document.getElementById('pInput').value.trim();
+        const name = document。getElementById('pInput')。value。trim();
         if(!name) return;
-        const resDiv = document。getElementById('pResult'); resDiv。innerHTML = '计算中...';
+        const resDiv = document。getElementById('pResult'); resDiv.innerHTML = '计算中...';
         
-        let 输入 = null, pIdx = -1;
-        ['leader'，'female'，'male']。forEach(t => { const idx = this。data。personnel[t]。findIndex(p=>p.name===name); if(idx !== -1) { 输入 = t; pIdx = idx; } });
-        if(!type) { resDiv.innerHTML = '<div style="color:red;text-align:center;margin-top:10px;">未找到人员</div>'; return; }
+        let 输入 = null， pIdx = -1;
+        ['leader','female','male'].forEach(t => { const idx = this.data.personnel[t].findIndex(p=>p.name===name); if(idx !== -1) { type = t; pIdx = idx; } });
+        if(!输入) { resDiv.innerHTML = '<div style="color:red;text-align:center;margin-top:10px;">未找到人员</div>'; return; }
 
         const dates = Object.keys(this.data.schedules).sort();
         if(!dates.length) { resDiv.innerHTML = '暂无数据'; return; }
@@ -599,21 +599,21 @@ window.app = {
         if(type === 'leader') {
             let lastW=null, lastH=null;
             for(let i=dates.length-1; i>=0; i--) {
-                const d = dates[i]， s = this。data。schedules[d]， y = d.split('-')[0]， isH = (this.data.holidays[y]||[])。includes(d);
+                const d = dates[i], s = this.data.schedules[d], y = d.split('-')[0], isH = (this.data.holidays[y]||[]).includes(d);
                 const o = getOriginalName(s。leader， s。remark);
                 if(isH && !lastH) lastH = o;
                 if(!isH && !lastW) lastW = o;
                 if(lastH && lastW) break;
             }
-            this。showDualPrediction(resDiv， type, pIdx, lastW, lastH， lastDate);
+            this。showDualPrediction(resDiv， 输入， pIdx， lastW， lastH， lastDate);
         } else {
-            const s = this.data.schedules[lastDateStr];
+            const s = this。data。schedules[lastDateStr];
             const lastVal = getOriginalName(type==='female'?s.female:s.male, s.remark);
             this.showSinglePrediction(resDiv, type, pIdx, lastVal, lastDate);
         }
     }，
     
-    showSinglePrediction(div， 输入， targetIdx， lastVal， startDate) {
+    showSinglePrediction(div， 输入， targetIdx, lastVal, startDate) {
         const list = this。data。personnel[type]， lastIdx = list.findIndex(p=>p。name===lastVal);
         const startIdx = lastIdx === -1 ? 0 : (lastIdx + 1) % list.length;
         const f = this。sim(startDate， 365， ()=>true, list， startIdx， targetIdx);
@@ -624,27 +624,27 @@ window.app = {
         const idxW = lastW ? (list.findIndex(p=>p.name===lastW)+1)%list.length : 0;
         const resW = this.sim(startDate, 180, (d, isH) => !isH, list, idxW, targetIdx);
         const idxH = lastH ? (list.findIndex(p=>p.name===lastH)+1)%list.length : 0;
-        const resH = this。sim(startDate， 365， (d, isH) => isH, list， idxH， targetIdx);
-        div。innerHTML = '<div style="display:flex; gap:12px; margin-top:15px;"><div style="flex:1; background:#f8fafc; padding:15px; border-radius:10px;"><div style="font-size:13px; color:#64748b; margin-bottom:5px;">平日带班</div><div style="color:var(--primary); font-weight:700; font-size:16px;">'+(resW。date||resW.err)+'</div></div><div style="flex:1; background:#fff1f2; padding:15px; border-radius:10px;"><div style="font-size:13px; color:#be123c; margin-bottom:5px;">假日带班</div><div style="color:var(--accent-red); font-weight:700; font-size:16px;">'+(resH.date||resH。err)+'</div></div></div>';
+        const resH = this.sim(startDate, 365, (d, isH) => isH, list, idxH, targetIdx);
+        div。innerHTML = '<div style="display:flex; gap:12px; margin-top:15px;"><div style="flex:1; background:#f8fafc; padding:15px; border-radius:10px;"><div style="font-size:13px; color:#64748b; margin-bottom:5px;">平日带班</div><div style="color:var(--primary); font-weight:700; font-size:16px;">'+(resW。date||resW。err)+'</div></div><div style="flex:1; background:#fff1f2; padding:15px; border-radius:10px;"><div style="font-size:13px; color:#be123c; margin-bottom:5px;">假日带班</div><div style="color:var(--accent-red); font-weight:700; font-size:16px;">'+(resH。date||resH。err)+'</div></div></div>';
     }，
     sim(startDate， limit， cond， list， cIdx， tIdx) {
-        let d=new Date(startDate); d.setDate(d.getDate()+1);
+        let d=new Date(startDate); d.setDate(d。getDate()+1);
         let ptr=cIdx;
         for(let i=0;i<limit;i++){
-            const y=d。getFullYear()， m=String(d。getMonth()+1).padStart(2，'0')， dn=String(d。getDate())。padStart(2，'0');
+            const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dn=String(d.getDate()).padStart(2,'0');
             const ds=y+'-'+m+'-'+dn, isH=(this.data.holidays[String(y)]||[]).includes(ds);
-            if(cond(ds, isH)) {
+            if(cond(ds， isH)) {
                 let p=list[ptr];
-                while((p。skips||[])。some(s=>ds>=s.start&&ds<=s.end)){ ptr=(ptr+1)%list.length; p=list[ptr]; if(ptr===cIdx)return{err:'全员悬停'}; }
+                while((p.skips||[]).some(s=>ds>=s.start&&ds<=s.end)){ ptr=(ptr+1)%list.length; p=list[ptr]; if(ptr===cIdx)return{err:'全员悬停'}; }
                 if(ptr===tIdx) return {date:ds};
                 ptr=(ptr+1)%list.length;
             }
-            d.setDate(d.getDate()+1);
+            d。setDate(d。getDate()+1);
         }
         return {err:'超范围'};
     }，
 
-    changeMonth(d) { let m=this.m+d, y=this.y; if(m>12){m=1;y++}if(m<1){m=12;y--} this.y=y;this.m=m; this.renderCal(); },
+    changeMonth(d) { let m=this。m+d， y=this。y; if(m>12){m=1;y++}if(m<1){m=12;y--} this.y=y;this.m=m; this。renderCal(); }，
     goToday() { this.y=new Date().getFullYear(); this.m=new Date().getMonth()+1; const now=new Date(); this.selectedDate=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0'); this.renderCal(); this.updateSidePanel(); }
 };
 window。onload=()=>app.login(); 

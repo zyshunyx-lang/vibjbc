@@ -1,3 +1,7 @@
+{
+type: uploaded file
+fileName: zyshunyx-lang/vibjbc/vibjbc-333ca6c4fa9facab8aa7c2c1a7427897c43bee61/index.html
+fullContent:
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -101,7 +105,7 @@
         .duty-label { color: var(--text-sub); font-size: 14px; min-width: 60px; }
         .duty-name { font-weight: 600; color: var(--text-main); font-size: 16px; text-align: right; }
 
-        .menu-text { font-size: 15px; color: var(--text-main); line-height: 1.6; font-weight: 500; }
+        .menu-text { font-size: 15px; color: var(--text-main); line-height: 1.6; font-weight: 500; white-space: pre-wrap; }
         .remark-text { font-size: 14px; color: var(--accent-orange); line-height: 1.5; white-space: pre-wrap; background: #fff7ed; padding: 10px; border-radius: 8px; }
 
         /* --- 右侧日历面板 (Calendar) --- */
@@ -185,6 +189,7 @@
         .func-btn::before { font-size: 16px; font-weight: normal; }
         .btn-query::before { content: '🔍'; }
         .btn-predict::before { content: '🔮'; }
+        .btn-month::before { content: '📅'; }
 
         button.icon-btn { border: none; background: #f1f5f9; border-radius: 10px; width: 36px; height: 36px; cursor: pointer; color: var(--text-main); transition:0.2s; display: flex; align-items: center; justify-content: center; font-weight:bold; }
         button.icon-btn:hover { background: #e2e8f0; }
@@ -193,6 +198,20 @@
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 200; justify-content: center; align-items: center; backdrop-filter: blur(5px); padding: 20px; }
         .modal-card { background: white; width: 100%; max-width: 420px; max-height: 80vh; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); overflow-y: auto; }
         
+        .modal-card.full-screen { max-width: 1200px; height: 90vh; max-height: 90vh; }
+
+        /* 整月视图样式 */
+        .month-view-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #e2e8f0; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; flex: 1; }
+        .month-head { background: #f8fafc; padding: 10px; text-align: center; font-weight: bold; color: #64748b; font-size: 14px; }
+        .month-cell { background: white; min-height: 100px; padding: 8px; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+        .month-cell.holiday { background: #fef2f2; }
+        .m-date-row { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 4px; font-size: 14px; }
+        .m-name { font-size: 12px; padding: 2px 4px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 1px; }
+        .m-name.l { background: #e0e7ff; color: #3730a3; }
+        .m-name.f { background: #fce7f3; color: #9d174d; }
+        .m-name.m { background: #dcfce7; color: #166534; }
+        .m-remark { font-size: 10px; color: #c2410c; border-top: 1px dashed #e2e8f0; margin-top: auto; padding-top: 2px; }
+
         /* --- 移动端适配 (重点优化) --- */
         @media (max-width: 768px) {
             body {
@@ -279,6 +298,12 @@
 
             .func-bar { padding: 10px; gap: 10px; }
             .func-btn { font-size: 13px; padding: 10px 0; }
+
+            /* 整月视图移动端 */
+            .month-view-grid { grid-template-columns: repeat(1, 1fr); gap: 10px; background: transparent; border: none; }
+            .month-head { display: none; }
+            .month-cell { border-radius: 8px; border: 1px solid #e2e8f0; min-height: 0; }
+            .m-date-row { margin-bottom: 8px; border-bottom: 1px dashed #eee; padding-bottom: 5px; }
         }
 
         /* 登录层 */
@@ -288,7 +313,6 @@
 </head>
 <body>
 
-<!-- 登录层 -->
 <div id="loginOverlay">
     <div class="login-box">
         <h2 style="margin-top:0; color:var(--primary); font-size:20px; margin-bottom:20px;">值班表查看器</h2>
@@ -298,10 +322,9 @@
     </div>
 </div>
 
-<div class="app-header">值班表查看器 (V2.0)</div>
+<div class="app-header">值班表查看器 (V2.1)</div>
 
 <div class="main-container">
-    <!-- 左侧信息面板 -->
     <div class="info-panel">
         <div class="date-header">
             <div class="date-big" id="sideDay">--</div>
@@ -311,7 +334,6 @@
             </div>
         </div>
         <div class="info-content">
-            <!-- 值班人员 -->
             <div class="info-card">
                 <div class="card-title">当日值班</div>
                 <div class="duty-list">
@@ -320,17 +342,14 @@
                     <div class="duty-row"><span class="duty-label">男值班员</span><span class="duty-name" id="sideMale">-</span></div>
                 </div>
             </div>
-            <!-- 菜谱 -->
             <div class="info-card">
                 <div class="card-title">当日菜谱</div>
                 <div class="menu-text" id="sideMenu">暂无信息</div>
             </div>
-            <!-- 备注 -->
             <div class="info-card" id="remarkCard" style="display:none">
                 <div class="card-title">备注事项</div>
                 <div class="remark-text" id="sideRemark"></div>
             </div>
-            <!-- 公告 -->
             <div class="info-card" id="noticeCard" style="display:none;">
                 <div class="card-title" style="color:#c2410c">公告</div>
                 <div class="menu-text" id="sideNotice" style="color:#c2410c; font-size:13px; background:#fff7ed; padding:8px; border-radius:6px;"></div>
@@ -338,7 +357,6 @@
         </div>
     </div>
 
-    <!-- 右侧日历面板 -->
     <div class="calendar-panel">
         <div class="cal-toolbar">
             <button class="icon-btn" onclick="app.goToday()" title="回到今天">今</button>
@@ -347,32 +365,28 @@
                 <span id="calTitle" style="min-width:120px; text-align:center;">---- / --</span>
                 <button class="icon-btn" onclick="app.changeMonth(1)" style="width:32px; height:32px;">▶</button>
             </div>
-            <div style="width:36px"></div> <!-- 占位 -->
-        </div>
+            <div style="width:36px"></div> </div>
         
         <div class="cal-grid-wrapper">
             <div class="cal-head"><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div><div>日</div></div>
             <div class="cal-body" id="calGrid"></div>
         </div>
 
-        <!-- 底部功能栏 -->
         <div class="func-bar">
             <button class="func-btn btn-query" onclick="app.openFeature('query')">值班查询</button>
-            <!-- 移除每周菜谱按钮 -->
             <button class="func-btn btn-predict" onclick="app.openFeature('predict')">值班预估</button>
+            <button class="func-btn btn-month" onclick="app.openMonthView()">整月视图</button>
         </div>
     </div>
 </div>
 
-<!-- 模态框：通用功能容器 -->
 <div id="featModal" class="modal-overlay">
-    <div class="modal-card">
+    <div class="modal-card" id="featCard">
         <div style="display:flex; justify-content:space-between; margin-bottom:20px; align-items:center;">
             <b style="font-size:18px; color:var(--text-main);" id="modalTitle">功能</b>
             <span style="cursor:pointer; font-size:24px; color:#cbd5e1; line-height:1;" onclick="document.getElementById('featModal').style.display='none'">×</span>
         </div>
         
-        <!-- 值班查询内容 -->
         <div id="content_query" class="lab-content" style="display:none;">
             <div style="display:flex; gap:12px; margin-bottom:20px;">
                 <input id="sInput" placeholder="输入姓名查找" style="flex:1; padding:12px; border:1px solid #e2e8f0; border-radius:10px; outline:none; font-size:14px;" onkeydown="if(event.key==='Enter') app.search()">
@@ -382,12 +396,6 @@
             <div id="sResult" style="max-height:300px; overflow-y:auto; display:flex; flex-direction:column; gap:10px;"></div>
         </div>
 
-        <!-- 每周菜谱内容 (按钮已移除，保留代码结构) -->
-        <div id="content_menu" class="lab-content" style="display:none;">
-            <div id="weekMenuList"></div>
-        </div>
-
-        <!-- 值班预估内容 -->
         <div id="content_predict" class="lab-content" style="display:none;">
             <p style="font-size:13px; color:#c2410c; background:#fff7ed; padding:12px; border-radius:10px; margin-top:0; line-height:1.5;">⚠️ 仅供参考：基于已发布值班表最后一日人员推算。</p>
             <div style="display:flex; gap:12px; margin:20px 0;">
@@ -397,7 +405,13 @@
             <div id="pResult"></div>
         </div>
         
-        <!-- 施工中 -->
+        <div id="content_month" class="lab-content" style="display:none; height:100%; display:flex; flex-direction:column;">
+             <div class="month-head" style="display:grid; grid-template-columns: repeat(7, 1fr);">
+                 <div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div><div>日</div>
+             </div>
+             <div class="month-view-grid" id="monthViewGrid" style="overflow-y:auto;"></div>
+        </div>
+
         <div id="content_wip" class="lab-content" style="display:none; text-align:center; padding:30px; color:#94a3b8;">
             功能未开启
         </div>
@@ -422,7 +436,9 @@ window.app = {
             if(res.status === 200) {
                 this.data = json.data || {};
                 ['schedules','holidays'].forEach(k=>{if(!this.data[k])this.data[k]={}});
-                if(!this.data.labConfig) this.data.labConfig = {switches:{query:true,menu:true,predict:true}, menus:[]};
+                if(!this.data.labConfig) this.data.labConfig = {switches:{query:true,menu:true,predict:true}, dailyMenus:{}};
+                if(!this.data.labConfig.dailyMenus) this.data.labConfig.dailyMenus = {};
+                
                 document.getElementById('loginOverlay').style.display = 'none';
                 
                 // 初始化选中今天
@@ -451,7 +467,6 @@ window.app = {
 
         for(let d=1; d<=daysInMonth; d++) {
             const ds = `${this.y}-${String(this.m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-            // const s = this.data.schedules[ds]; // 日历格子上不显示值班状态了，保持干净
             const isH = hList.includes(ds);
             const isSelected = this.selectedDate === ds;
             
@@ -488,34 +503,10 @@ window.app = {
         document.getElementById('sideFemale').innerText = s.female || '-';
         document.getElementById('sideMale').innerText = s.male || '-';
 
-        // 菜谱逻辑优化：只显示“本周”的菜谱
-        const dayIdx = (dateObj.getDay() + 6) % 7; // 周一=0, 周日=6
-        const menus = this.data.labConfig.menus || [];
-        
-        // 判断是否是“本周”
-        const now = new Date();
-        const currentMonday = new Date(now);
-        const day = currentMonday.getDay() || 7; 
-        if(day !== 1) currentMonday.setHours(-24 * (day - 1)); // 调到本周一
-        currentMonday.setHours(0,0,0,0);
-        
-        const nextMonday = new Date(currentMonday);
-        nextMonday.setDate(currentMonday.getDate() + 7);
-        
-        // 选中日期的时间戳
-        const selTime = dateObj.getTime();
-        const isCurrentWeek = selTime >= currentMonday.getTime() && selTime < nextMonday.getTime();
-        
-        let menuStr = "暂无信息";
-        if (!isCurrentWeek) {
-            menuStr = "非本周菜谱不可见";
-        } else if (dayIdx < 5 && menus[dayIdx]) {
-            menuStr = menus[dayIdx];
-        } else if (dayIdx >= 5) {
-            menuStr = "周末无供应";
-        }
-
-        document.getElementById('sideMenu').innerText = menuStr;
+        // 菜谱逻辑优化：按天读取，无数据则显示无
+        const menus = this.data.labConfig.dailyMenus || {};
+        const menuContent = menus[this.selectedDate] || "当日暂无菜谱信息";
+        document.getElementById('sideMenu').innerText = menuContent;
 
         // 备注 & 公告
         const remEl = document.getElementById('remarkCard');
@@ -535,19 +526,67 @@ window.app = {
         }
     },
 
+    // --- 整月视图逻辑 ---
+    openMonthView() {
+        const modal = document.getElementById('featModal');
+        const card = document.getElementById('featCard');
+        card.classList.add('full-screen'); // 切换到大屏模式
+        
+        modal.style.display = 'flex';
+        document.getElementById('modalTitle').innerText = `${this.y}年${this.m}月 全景视图`;
+        
+        document.querySelectorAll('.lab-content').forEach(el => el.style.display = 'none');
+        const container = document.getElementById('content_month');
+        container.style.display = 'flex';
+        
+        // 渲染网格
+        const grid = document.getElementById('monthViewGrid');
+        grid.innerHTML = '';
+        
+        const firstDay = new Date(this.y, this.m-1, 1);
+        const daysInMonth = new Date(this.y, this.m, 0).getDate();
+        const startEmpty = (firstDay.getDay() + 6) % 7; 
+        const hList = this.data.holidays[String(this.y)] || [];
+
+        // PC端补空位，移动端样式会隐藏空位
+        if(window.innerWidth > 768) {
+             for(let i=0; i<startEmpty; i++) grid.innerHTML += `<div class="month-cell" style="background:#f8fafc;"></div>`;
+        }
+
+        for(let d=1; d<=daysInMonth; d++) {
+            const ds = `${this.y}-${String(this.m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const s = this.data.schedules[ds] || {leader:'', female:'', male:'', remark:''};
+            const isH = hList.includes(ds);
+            
+            const cell = document.createElement('div');
+            cell.className = `month-cell ${isH?'holiday':''}`;
+            cell.innerHTML = `
+                <div class="m-date-row">
+                    <span>${d}日</span>
+                    ${isH?'<span style="color:red">休</span>':''}
+                </div>
+                <div class="m-name l">${s.leader||'-'}</div>
+                <div class="m-name f">${s.female||'-'}</div>
+                <div class="m-name m">${s.male||'-'}</div>
+                ${s.remark ? `<div class="m-remark">${s.remark}</div>` : ''}
+            `;
+            grid.appendChild(cell);
+        }
+    },
+
     // --- 功能区 ---
     openFeature(feat) {
-        // --- 预估功能知晓确认 ---
         if (feat === 'predict') {
             const warningText = "【预估知晓确认】\n\n该预估基于已发布值班表最后一日人员推算，未来变化无法预估，结果仅供参考。\n\n同意则可以使用，不同意则无法使用。";
-            if (!confirm(warningText)) {
-                return; // 用户点击取消，不执行后续打开逻辑
-            }
+            if (!confirm(warningText)) return;
         }
 
         const switches = this.data.labConfig.switches || {query:true, menu:true, predict:true};
         const modal = document.getElementById('featModal');
-        const titles = { query: '值班查询', menu: '每周菜谱', predict: '值班预估' };
+        const card = document.getElementById('featCard');
+        card.classList.remove('full-screen'); // 恢复默认大小
+        
+        const titles = { query: '值班查询', predict: '值班预估' };
         
         modal.style.display = 'flex';
         document.getElementById('modalTitle').innerText = titles[feat];
@@ -560,23 +599,7 @@ window.app = {
         }
 
         document.getElementById(`content_${feat}`).style.display = 'block';
-        
-        if(feat === 'menu') this.renderWeekMenu();
         if(feat === 'query') setTimeout(()=>document.getElementById('sInput').focus(), 100);
-    },
-
-    renderWeekMenu() {
-        const menus = this.data.labConfig.menus || [];
-        const days = ['周一','周二','周三','周四','周五'];
-        let html = '<div style="display:grid; gap:12px;">';
-        days.forEach((d, i) => {
-            html += `<div style="padding:15px; background:#f8fafc; border-radius:12px; display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-weight:700; color:var(--primary); font-size:14px;">${d}</span>
-                <span style="color:#475569; font-size:14px;">${menus[i] || '暂无'}</span>
-            </div>`;
-        });
-        html += '</div>';
-        document.getElementById('weekMenuList').innerHTML = html;
     },
 
     search() {
@@ -595,7 +618,6 @@ window.app = {
                 const y = k.split('-')[0];
                 const isH = (this.data.holidays[y]||[]).includes(k);
                 
-                // 查询结果：增加【假】字标记
                 r.innerHTML += `
                 <div style="padding:15px; background:#f8fafc; border-radius:12px; border:1px solid #f1f5f9;">
                     <div style="font-weight:700; color:var(--text-main); font-size:15px; margin-bottom:5px; display:flex; justify-content:space-between;">
@@ -632,10 +654,10 @@ window.app = {
     predict() {
         const name = document.getElementById('pInput').value.trim();
         if(!name) return;
-        const resDiv = document.getElementById('pResult'); resDiv.innerHTML = '计算中...';
+        const resDiv = document。getElementById('pResult'); resDiv。innerHTML = '计算中...';
         
-        let type = null, pIdx = -1;
-        ['leader','female','male'].forEach(t => { const idx = this.data.personnel[t].findIndex(p=>p.name===name); if(idx !== -1) { type = t; pIdx = idx; } });
+        let 输入 = null, pIdx = -1;
+        ['leader'，'female'，'male']。forEach(t => { const idx = this。data。personnel[t]。findIndex(p=>p.name===name); if(idx !== -1) { 输入 = t; pIdx = idx; } });
         if(!type) { resDiv.innerHTML = `<div style="color:red;text-align:center;margin-top:10px;">未找到人员</div>`; return; }
 
         const dates = Object.keys(this.data.schedules).sort();
@@ -654,50 +676,50 @@ window.app = {
         if(type === 'leader') {
             let lastW=null, lastH=null;
             for(let i=dates.length-1; i>=0; i--) {
-                const d = dates[i], s = this.data.schedules[d], y = d.split('-')[0], isH = (this.data.holidays[y]||[]).includes(d);
-                const o = getOriginalName(s.leader, s.remark);
+                const d = dates[i]， s = this。data。schedules[d]， y = d.split('-')[0]， isH = (this.data.holidays[y]||[])。includes(d);
+                const o = getOriginalName(s。leader， s。remark);
                 if(isH && !lastH) lastH = o;
                 if(!isH && !lastW) lastW = o;
                 if(lastH && lastW) break;
             }
-            this.showDualPrediction(resDiv, type, pIdx, lastW, lastH, lastDate);
+            this。showDualPrediction(resDiv， type, pIdx, lastW, lastH， lastDate);
         } else {
             const s = this.data.schedules[lastDateStr];
             const lastVal = getOriginalName(type==='female'?s.female:s.male, s.remark);
             this.showSinglePrediction(resDiv, type, pIdx, lastVal, lastDate);
         }
-    },
+    }，
     
-    showSinglePrediction(div, type, targetIdx, lastVal, startDate) {
-        const list = this.data.personnel[type], lastIdx = list.findIndex(p=>p.name===lastVal);
+    showSinglePrediction(div， 输入， targetIdx， lastVal， startDate) {
+        const list = this。data。personnel[type]， lastIdx = list.findIndex(p=>p。name===lastVal);
         const startIdx = lastIdx === -1 ? 0 : (lastIdx + 1) % list.length;
-        const f = this.sim(startDate, 365, ()=>true, list, startIdx, targetIdx);
-        div.innerHTML = `<div style="margin-top:15px; border-radius:10px; background:#f8fafc; padding:15px;"><div style="color:#64748b; font-size:13px; margin-bottom:5px;">未来值班 (不分节假日)</div><div style="color:var(--primary); font-weight:700; font-size:16px;">${f.date||f.err}</div></div>`;
-    },
-    showDualPrediction(div, type, targetIdx, lastW, lastH, startDate) {
+        const f = this。sim(startDate， 365， ()=>true, list， startIdx， targetIdx);
+        div。innerHTML = `<div style="margin-top:15px; border-radius:10px; background:#f8fafc; padding:15px;"><div style="color:#64748b; font-size:13px; margin-bottom:5px;">未来值班 (不分节假日)</div><div style="color:var(--primary); font-weight:700; font-size:16px;">${f。date||f.err}</div></div>`;
+    }，
+    showDualPrediction(div， 输入， targetIdx， lastW， lastH， startDate) {
         const list = this.data.personnel.leader;
         const idxW = lastW ? (list.findIndex(p=>p.name===lastW)+1)%list.length : 0;
         const resW = this.sim(startDate, 180, (d, isH) => !isH, list, idxW, targetIdx);
         const idxH = lastH ? (list.findIndex(p=>p.name===lastH)+1)%list.length : 0;
-        const resH = this.sim(startDate, 365, (d, isH) => isH, list, idxH, targetIdx);
-        div.innerHTML = `<div style="display:flex; gap:12px; margin-top:15px;"><div style="flex:1; background:#f8fafc; padding:15px; border-radius:10px;"><div style="font-size:13px; color:#64748b; margin-bottom:5px;">平日带班</div><div style="color:var(--primary); font-weight:700; font-size:16px;">${resW.date||resW.err}</div></div><div style="flex:1; background:#fff1f2; padding:15px; border-radius:10px;"><div style="font-size:13px; color:#be123c; margin-bottom:5px;">假日带班</div><div style="color:var(--accent-red); font-weight:700; font-size:16px;">${resH.date||resH.err}</div></div></div>`;
-    },
-    sim(startDate, limit, cond, list, cIdx, tIdx) {
+        const resH = this。sim(startDate， 365， (d, isH) => isH, list， idxH， targetIdx);
+        div。innerHTML = `<div style="display:flex; gap:12px; margin-top:15px;"><div style="flex:1; background:#f8fafc; padding:15px; border-radius:10px;"><div style="font-size:13px; color:#64748b; margin-bottom:5px;">平日带班</div><div style="color:var(--primary); font-weight:700; font-size:16px;">${resW。date||resW.err}</div></div><div style="flex:1; background:#fff1f2; padding:15px; border-radius:10px;"><div style="font-size:13px; color:#be123c; margin-bottom:5px;">假日带班</div><div style="color:var(--accent-red); font-weight:700; font-size:16px;">${resH。date||resH。err}</div></div></div>`;
+    }，
+    sim(startDate， limit， cond， list， cIdx， tIdx) {
         let d=new Date(startDate); d.setDate(d.getDate()+1);
         let ptr=cIdx;
         for(let i=0;i<limit;i++){
-            const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dn=String(d.getDate()).padStart(2,'0');
+            const y=d。getFullYear()， m=String(d。getMonth()+1).padStart(2，'0')， dn=String(d。getDate())。padStart(2，'0');
             const ds=`${y}-${m}-${dn}`, isH=(this.data.holidays[String(y)]||[]).includes(ds);
             if(cond(ds, isH)) {
                 let p=list[ptr];
-                while((p.skips||[]).some(s=>ds>=s.start&&ds<=s.end)){ ptr=(ptr+1)%list.length; p=list[ptr]; if(ptr===cIdx)return{err:'全员悬停'}; }
+                while((p。skips||[])。some(s=>ds>=s.start&&ds<=s.end)){ ptr=(ptr+1)%list.length; p=list[ptr]; if(ptr===cIdx)return{err:'全员悬停'}; }
                 if(ptr===tIdx) return {date:ds};
                 ptr=(ptr+1)%list.length;
             }
             d.setDate(d.getDate()+1);
         }
         return {err:'超范围'};
-    },
+    }，
 
     changeMonth(d) { let m=this.m+d, y=this.y; if(m>12){m=1;y++}if(m<1){m=12;y--} this.y=y;this.m=m; this.renderCal(); },
     goToday() { this.y=new Date().getFullYear(); this.m=new Date().getMonth()+1; const now=new Date(); this.selectedDate=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`; this.renderCal(); this.updateSidePanel(); }
@@ -705,3 +727,4 @@ window.app = {
 </script>
 </body>
 </html>
+}

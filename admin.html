@@ -530,19 +530,19 @@ window.app = {
         const [y,m]=ms.split('-').map(Number), days=new Date(y,m,0).getDate(), hl=this.data.holidays[String(y)]||[];
         const getI=(id,t)=>{const n=document.getElementById(id).value; return Math.max(0,(this.data.personnel[t]||[]).findIndex(p=>p.name===n))};
         let iw=getI('slW','leader'), ih=getI('slH','leader'), ife=getI('sf','female'), ima=getI('sm','male');
-        const pL=this。data。personnel。leader， pF=this。data。personnel。female， pM=this。data。personnel。male;
+        const pL=this.data.personnel.leader, pF=this.data.personnel.female, pM=this.data.personnel.male;
         
-        const isSkipped = (p， dateStr) => {
+        const isSkipped = (p, dateStr) => {
             if (!p || !p.skips || !Array.isArray(p.skips)) return false;
-            return p。skips。some(s => dateStr >= s.start && dateStr <= s。end);
+            return p.skips.some(s => dateStr >= s.start && dateStr <= s.end);
         };
         
-        const pick=(list， start， dateStr)=>{
+        const pick=(list, start, dateStr)=>{
             let c=start, cnt=0; 
-            while(cnt<list。length){ 
+            while(cnt<list.length){ 
                 const p=list[c%list.length]; 
-                if(!isSkipped(p， dateStr)) return {name:p.name， 下一处:(c+1)%list.length}; 
-                this。log('生成过滤'， dateStr+' 跳过 '+p.name+' (处于轮空期)');
+                if(!isSkipped(p, dateStr)) return {name:p.name, next:(c+1)%list.length}; 
+                this.log('生成过滤', dateStr+' 跳过 '+p.name+' (处于轮空期)');
                 c++; cnt++; 
             } 
             return {name:'无可用', next:c};
@@ -551,16 +551,16 @@ window.app = {
         if(!pL.length) return alert('人员不足');
         
         for(let d=1;d<=days;d++) {
-            const ds=y+'-'+String(m)。padStart(2，'0')+'-'+String(d)。padStart(2，'0')， isH=hl.includes(ds);
+            const ds=y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0'), isH=hl.includes(ds);
             let l; 
-            if(isH){ const r=pick(pL，ih，ds); l=r。name; ih=r。下一处; } 
-            else { const r=pick(pL，iw，ds); l=r。name; iw=r。下一处; }
-            const f=pick(pF，ife，ds); ife=f。下一处; 
-            const ma=pick(pM，ima，ds); ima=ma.下一处;
+            if(isH){ const r=pick(pL,ih,ds); l=r.name; ih=r.next; } 
+            else { const r=pick(pL,iw,ds); l=r.name; iw=r.next; }
+            const f=pick(pF,ife,ds); ife=f.next; 
+            const ma=pick(pM,ima,ds); ima=ma.next;
 
-            const finalCheck = (name， list) => {
-                 const p = list。find(x => x。name === name);
-                 if(p && isSkipped(p， ds)) {
+            const finalCheck = (name, list) => {
+                 const p = list.find(x => x.name === name);
+                 if(p && isSkipped(p, ds)) {
                      this.log('严重警告', ds+' 异常排入轮空人员 '+name+'，请检查数据');
                      return name+'(轮空异常)';
                  }
@@ -568,42 +568,42 @@ window.app = {
             };
 
             const lFinal = finalCheck(l, pL);
-            const fFinal = finalCheck(f。name， pF);
-            const mFinal = finalCheck(ma。name， pM);
+            const fFinal = finalCheck(f.name, pF);
+            const mFinal = finalCheck(ma.name, pM);
 
-            this。data。schedules[ds]={leader:lFinal, female:fFinal, male:mFinal, remark:''};
+            this.data.schedules[ds]={leader:lFinal, female:fFinal, male:mFinal, remark:''};
         }
         this.renderCal(); 
         this.toast('⚡ 预览已生成');
-    }，
+    },
 
     // --- Holiday ---
-    renderHoliday() { const y=document.getElementById('hYear')。value， l=this。data。holidays[y]||[]; document.getElementById('holidayChips')。innerHTML=l。sort()。map(d=>'<div style="background:white;border:1px solid #f87171;padding:2px 6px;border-radius:4px;font-size:11px;color:#dc2626;">'+d。substring(5)+' <span onclick="app.delHoliday(\''+y+'\'，\''+d+'\')" style="cursor:pointer;font-weight:bold">&times;</span></div>')。join(''); }，
-    addHolidayRange() { const y=document.getElementById('hYear')。value， s=document。getElementById('hStart')。value， e=document.getElementById('hEnd')。value; if(!s||!e)return; let d=new Date(s)， en=new Date(e)， c=0; if(!this。data。holidays[y])this。data。holidays[y]=[]; while(d<=en){ const k=d。toISOString()。slice(0，10); if(!this.data.holidays[y]。includes(k)){this。data。holidays[y]。push(k);c++} d。setDate(d。getDate()+1); } this。log('添加假日'， s); this。save(); this.renderHoliday(); }，
-    delHoliday(y，d) { this。data。holidays[y]=this。data.holidays[y]。filter(x=>x!==d); this。log('删除假日'， d); this。save(); this。renderHoliday(); },
+    renderHoliday() { const y=document.getElementById('hYear').value, l=this.data.holidays[y]||[]; document.getElementById('holidayChips').innerHTML=l.sort().map(d=>'<div style="background:white;border:1px solid #f87171;padding:2px 6px;border-radius:4px;font-size:11px;color:#dc2626;">'+d.substring(5)+' <span onclick="app.delHoliday(\''+y+'\',\''+d+'\')" style="cursor:pointer;font-weight:bold">&times;</span></div>').join(''); },
+    addHolidayRange() { const y=document.getElementById('hYear').value, s=document.getElementById('hStart').value, e=document.getElementById('hEnd').value; if(!s||!e)return; let d=new Date(s), en=new Date(e), c=0; if(!this.data.holidays[y])this.data.holidays[y]=[]; while(d<=en){ const k=d.toISOString().slice(0,10); if(!this.data.holidays[y].includes(k)){this.data.holidays[y].push(k);c++} d.setDate(d.getDate()+1); } this.log('添加假日', s); this.save(); this.renderHoliday(); },
+    delHoliday(y,d) { this.data.holidays[y]=this.data.holidays[y].filter(x=>x!==d); this.log('删除假日', d); this.save(); this.renderHoliday(); },
     importGlobalData(inp) { const f=inp.files[0]; const r=new FileReader(); r.onload=e=>{ try{this.data=JSON.parse(e.target.result);this.save();this.log('数据恢复','full backup');alert('恢复成功，即将刷新');location.reload();}catch(err){alert('格式错误');}}; r.readAsText(f); },
-    importHistory(inp) { const f=inp。文件[0]; if(!f)return; const r=new FileReader(); r。onload=e=>{ const wb=XLSX。read(new Uint8Array(e。target。result)，{type:'array'})， rows=XLSX。utils。sheet_to_json(wb。Sheets[wb。SheetNames[0]]); let c=0; rows.forEach(row => { let d=row['日期']; if(typeof d==='number')d=new Date(Math。round((d-25569)*86400*1000))。toISOString()。slice(0，10); if(d && d。match(/^\d{4}-\d{2}-\d{2}$/)) { this。data。schedules[d]={leader:row['带班领导']||''， female:row['女值班员']||''， male:row['男值班员']||''， remark:row['备注']||''}; c++; } }); this。log('历史导入'， c); this。save(); this。renderCal(); inp。value=''; }; r。readAsArrayBuffer(f); }，
-    exportData() { const b=new Blob([JSON。stringify(this。data)]，{type:'application/json'})， a=document。createElement('a'); a。href=URL。createObjectURL(b); a。download='backup.json'; a。click(); }，
-    renderLogs() { const b=document.querySelector('#logTable tbody'); b。innerHTML=this。data。logs。map(l=>'<tr><td style="color:#666;font-size:11px;">'+l.t+'</td><td><strong>'+l。a+'</strong></td><td>'+l。d+'</td></tr>')。join(''); }，
-    clearLogs() { this。data。logs=[]; this。save(); this.renderLogs(); }，
-    tab(id) { document。querySelectorAll('.tab')。forEach(t=>t.classList.remove('active')); event.currentTarget.classList。add('active'); document.querySelectorAll('.tab-pane')。forEach(p=>p.classList.remove('active')); document.getElementById(id)。classList。add('active'); }，
+    importHistory(inp) { const f=inp.files[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{ const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'}), rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]); let c=0; rows.forEach(row => { let d=row['日期']; if(typeof d==='number')d=new Date(Math.round((d-25569)*86400*1000)).toISOString().slice(0,10); if(d && d.match(/^\d{4}-\d{2}-\d{2}$/)) { this.data.schedules[d]={leader:row['带班领导']||'', female:row['女值班员']||'', male:row['男值班员']||'', remark:row['备注']||''}; c++; } }); this.log('历史导入', c); this.save(); this.renderCal(); inp.value=''; }; r.readAsArrayBuffer(f); },
+    exportData() { const b=new Blob([JSON.stringify(this.data)],{type:'application/json'}), a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='backup.json'; a.click(); },
+    renderLogs() { const b=document.querySelector('#logTable tbody'); b.innerHTML=this.data.logs.map(l=>'<tr><td style="color:#666;font-size:11px;">'+l.t+'</td><td><strong>'+l.a+'</strong></td><td>'+l.d+'</td></tr>').join(''); },
+    clearLogs() { this.data.logs=[]; this.save(); this.renderLogs(); },
+    tab(id) { document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); event.currentTarget.classList.add('active'); document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); },
     downloadTemplate(t) { const d = t==='person' ? [{"人员类型":"带班领导","姓名":"张三","职务":"处长","座机":"8001","手机":"139"}] : [{"日期":"2025-01-01"}]; XLSX.writeFile(XLSX.utils.book_new(XLSX.utils.json_to_sheet(d)), "模板.xlsx"); },
     importExcel(inp, type) {
-        const f=inp。文件[0]; if(!f)return;
+        const f=inp.files[0]; if(!f)return;
         const r=new FileReader();
-        r。onload=e=>{
-            const wb=XLSX。read(new Uint8Array(e。target。result)，{type:'array'})， rows=XLSX。utils.sheet_to_json(wb。Sheets[wb。SheetNames[0]]);
+        r.onload=e=>{
+            const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'}), rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
             let c=0;
             if(type==='person') {
-                const map={'带班领导':'leader'，'女值班员':'female'，'男值班员':'male'};
+                const map={'带班领导':'leader','女值班员':'female','男值班员':'male'};
                 rows.forEach(r=>{ const t=map[r['人员类型']]; if(t){this.data.personnel[t].push({name:r['姓名'],phone:r['手机'],job:r['职务'],landline:r['座机'],remark:r['备注'],skips:[]});c++} });
             }
             this.log('导入人员', c+'条'); this.save(); this.renderPersonList(); inp.value=''; alert('导入 '+c+' 条');
-        }; r。readAsArrayBuffer(f);
-    }，
+        }; r.readAsArrayBuffer(f);
+    },
     changePass(type) { const v = type==='admin'?document.getElementById('newAdmin').value : document.getElementById('newView').value; if(!v) return; if(confirm('修改'+(type==='admin'?'管理':'查看')+'密码？')) fetch(this.api, {method:'POST', body:JSON.stringify({action:'change_pass', password:this.token, [type==='admin'?'newAdminPass':'newViewPass']:v})}).then(()=>{alert('成功');}); }
 };
-window。onload=()=>app。init();
+window.onload=()=>app.init();
 </script>
 </body>
 </html>
